@@ -369,7 +369,9 @@ export default function Home() {
 function Brand({ long = false }: { long?: boolean }) {
   return (
     <Stack alignItems="center" direction="row" spacing={1.25}>
-      <Box className={styles.brandMark}>OP</Box>
+      <Box className={styles.brandMark}>
+        <img alt="Overwatch Logo" src="/logo_icons.png" />
+      </Box>
       <Box>
         <Typography level="title-sm">
           {long ? "Overwatch Patch Insight" : "Patch Insight"}
