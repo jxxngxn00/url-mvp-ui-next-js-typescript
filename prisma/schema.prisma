@@ -1,0 +1,132 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum HeroRole {
+  TANK
+  DAMAGE
+  SUPPORT
+}
+
+enum ChangeType {
+  BUFF
+  NERF
+  ADJUSTMENT
+  BUG_FIX
+}
+
+enum ImpactLevel {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+model Hero {
+  id        String   @id @default(cuid())
+  heroId    String   @unique @map("hero_id")
+  nameKo    String   @map("name_ko")
+  nameEn    String   @map("name_en")
+  role      HeroRole
+  difficulty Int?
+  imageUrl  String?  @map("image_url")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  changes        HeroChange[]  @relation("ChangedHero")
+  synergyTargets HeroSynergy[] @relation("SynergyTarget")
+  counterTargets HeroCounter[] @relation("CounterTarget")
+
+  @@index([role])
+  @@map("heroes")
+}
+
+model PatchNote {
+  id             String       @id @default(cuid())
+  patchId        String       @unique @map("patch_id")
+  title          String
+  patchDate      DateTime     @map("patch_date") @db.Date
+  sourceUrl      String       @map("source_url")
+  rawContent     String?      @map("raw_content")
+  overallSummary String       @map("overall_summary")
+  metaSummary    String       @map("meta_summary")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+
+  changes HeroChange[]
+
+  @@index([patchDate])
+  @@map("patch_notes")
+}
+
+model HeroChange {
+  id                   String      @id @default(cuid())
+  changeId             String      @unique @map("change_id")
+  patchNoteId          String      @map("patch_note_id")
+  heroId               String      @map("hero_id")
+  changeType           ChangeType  @map("change_type")
+  impactLevel          ImpactLevel @map("impact_level")
+  originalChange       String      @map("original_change")
+  simpleSummary        String      @map("simple_summary")
+  metaImpact           String      @map("meta_impact")
+  recommendedPlaystyle String      @map("recommended_playstyle")
+  createdAt            DateTime    @default(now()) @map("created_at")
+  updatedAt            DateTime    @updatedAt @map("updated_at")
+
+  patchNote PatchNote @relation(fields: [patchNoteId], references: [id], onDelete: Cascade)
+  hero      Hero      @relation("ChangedHero", fields: [heroId], references: [id], onDelete: Restrict)
+
+  affectedTiers AffectedTier[]
+  synergies     HeroSynergy[]
+  counters      HeroCounter[]
+
+  @@index([patchNoteId])
+  @@index([heroId])
+  @@index([changeType])
+  @@index([impactLevel])
+  @@map("hero_changes")
+}
+
+model AffectedTier {
+  id           String  @id @default(cuid())
+  heroChangeId String  @map("hero_change_id")
+  tier         String
+  reason       String?
+
+  heroChange HeroChange @relation(fields: [heroChangeId], references: [id], onDelete: Cascade)
+
+  @@unique([heroChangeId, tier])
+  @@map("affected_tiers")
+}
+
+model HeroSynergy {
+  id           String  @id @default(cuid())
+  heroChangeId String  @map("hero_change_id")
+  targetHeroId String  @map("target_hero_id")
+  reason       String?
+
+  heroChange HeroChange @relation(fields: [heroChangeId], references: [id], onDelete: Cascade)
+  targetHero Hero       @relation("SynergyTarget", fields: [targetHeroId], references: [id], onDelete: Restrict)
+
+  @@unique([heroChangeId, targetHeroId])
+  @@index([targetHeroId])
+  @@map("hero_synergies")
+}
+
+model HeroCounter {
+  id           String  @id @default(cuid())
+  heroChangeId String  @map("hero_change_id")
+  targetHeroId String  @map("target_hero_id")
+  reason       String?
+
+  heroChange HeroChange @relation(fields: [heroChangeId], references: [id], onDelete: Cascade)
+  targetHero Hero       @relation("CounterTarget", fields: [targetHeroId], references: [id], onDelete: Restrict)
+
+  @@unique([heroChangeId, targetHeroId])
+  @@index([targetHeroId])
+  @@map("hero_counters")
+}
