@@ -16,6 +16,8 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import styles from "./page.module.css";
+import Image from "next/image";
+import logoIcon from "./logo_icons.png";
 
 type HeroRole = "TANK" | "DAMAGE" | "SUPPORT";
 type ChangeType = "BUFF" | "NERF" | "ADJUSTMENT" | "BUG_FIX";
@@ -370,7 +372,7 @@ function Brand({ long = false }: { long?: boolean }) {
   return (
     <Stack alignItems="center" direction="row" spacing={1.25}>
       <Box className={styles.brandMark}>
-        <img alt="Overwatch Logo" src="/logo_icons.png" />
+        <Image alt="Overwatch Logo" src={logoIcon} />
       </Box>
       <Box>
         <Typography level="title-sm">
