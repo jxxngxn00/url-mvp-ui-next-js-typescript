@@ -15,6 +15,8 @@ import {
 } from "@mui/joy";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
+import { createClient } from "@/utils/supabase/server";
+import { cookies } from "next/headers";
 import styles from "./page.module.css";
 import Image from "next/image";
 import logoIcon from "./logo_icons.png";
@@ -173,9 +175,12 @@ async function getPatchAnalysis() {
   return patchAnalysis;
 }
 
-export default function Home() {
+export default async function Home() {
   const [selectedRole, setSelectedRole] = useState<HeroRole | "ALL">("ALL");
   const [keyword, setKeyword] = useState("");
+  const cookieStore = await cookies();
+  const supabase = createClient(cookieStore);
+  
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["patch-analysis", patchAnalysis.patchId],
