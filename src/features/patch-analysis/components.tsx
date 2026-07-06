@@ -12,16 +12,26 @@ import {
   Typography,
 } from "@mui/joy";
 import Image, { type StaticImageData } from "next/image";
+import type { ReactNode } from "react";
 import styles from "@/app/page.module.css";
 import {
   changeTypeColor,
   changeTypeLabel,
+  changeTypes,
   impactColor,
   impactLabel,
+  impactLevels,
   roleLabel,
   roles,
 } from "./constants";
-import type { HeroChange, HeroRole, PatchAnalysis } from "./types";
+import type {
+  ChangeType,
+  HeroChange,
+  HeroRole,
+  ImpactLevel,
+  PatchAnalysis,
+  PatchSummary,
+} from "./types";
 
 export function Brand({
   logo,
@@ -111,6 +121,89 @@ export function StateCard({
   );
 }
 
+export function PatchListPanel({
+  patches,
+  selectedPatchId,
+  onPatchSelect,
+}: {
+  patches: PatchSummary[];
+  selectedPatchId: string;
+  onPatchSelect: (patchId: string) => void;
+}) {
+  return (
+    <Card className={styles.patchListPanel} variant="outlined">
+      <Stack
+        alignItems="center"
+        direction="row"
+        justifyContent="space-between"
+        spacing={2}
+      >
+        <Box>
+          <Typography level="title-md">패치 목록</Typography>
+          <Typography level="body-sm" textColor="text.tertiary">
+            분석된 패치를 선택해 상세 변경사항을 확인하세요.
+          </Typography>
+        </Box>
+        <Chip size="sm" variant="soft">
+          {patches.length}건
+        </Chip>
+      </Stack>
+
+      <Stack className={styles.patchList} component="section" spacing={1}>
+        {patches.length === 0 ? (
+          <Sheet className={styles.patchListItem} variant="soft">
+            <Typography level="body-sm">아직 분석된 패치가 없습니다.</Typography>
+          </Sheet>
+        ) : (
+          patches.map((patch) => {
+            const selected = patch.patchId === selectedPatchId;
+
+            return (
+              <Button
+                className={styles.patchListItem}
+                color={selected ? "primary" : "neutral"}
+                key={patch.patchId}
+                onClick={() => onPatchSelect(patch.patchId)}
+                variant={selected ? "soft" : "plain"}
+              >
+                <Box className={styles.patchListItemBody}>
+                  <Stack
+                    alignItems="center"
+                    direction="row"
+                    justifyContent="space-between"
+                    spacing={1.5}
+                  >
+                    <Typography level="title-sm">{patch.patchTitle}</Typography>
+                    <Typography
+                      component="time"
+                      dateTime={patch.patchDate}
+                      level="body-xs"
+                      textColor="text.tertiary"
+                    >
+                      {patch.patchDate}
+                    </Typography>
+                  </Stack>
+                  <Typography level="body-sm" textColor="text.secondary">
+                    {patch.overallSummary}
+                  </Typography>
+                  <Stack direction="row" flexWrap="wrap" gap={0.75}>
+                    <Chip size="sm" variant="soft">
+                      변경 {patch.changeCount}
+                    </Chip>
+                    <Chip color="danger" size="sm" variant="soft">
+                      높은 영향 {patch.highImpactChangeCount}
+                    </Chip>
+                  </Stack>
+                </Box>
+              </Button>
+            );
+          })
+        )}
+      </Stack>
+    </Card>
+  );
+}
+
 export function PatchSummaryPanel({
   patch,
   highImpactCount,
@@ -180,30 +273,60 @@ export function MetaSummaryPanel({ summary }: { summary: string }) {
 
 export function PatchFilters({
   keyword,
+  selectedChangeType,
+  selectedImpactLevel,
   selectedRole,
+  onChangeTypeChange,
+  onImpactLevelChange,
   onKeywordChange,
   onRoleChange,
 }: {
   keyword: string;
+  selectedChangeType: ChangeType | "ALL";
+  selectedImpactLevel: ImpactLevel | "ALL";
   selectedRole: HeroRole | "ALL";
+  onChangeTypeChange: (changeType: ChangeType | "ALL") => void;
+  onImpactLevelChange: (impactLevel: ImpactLevel | "ALL") => void;
   onKeywordChange: (keyword: string) => void;
   onRoleChange: (role: HeroRole | "ALL") => void;
 }) {
   return (
     <Box className={styles.toolbar}>
-      <Stack className={styles.segmentedControl} direction="row" spacing={0.75}>
+      <FilterGroup label="역할">
         {roles.map((role) => (
-          <Button
-            color={selectedRole === role.value ? "primary" : "neutral"}
+          <FilterButton
             key={role.value}
             onClick={() => onRoleChange(role.value)}
-            size="sm"
-            variant={selectedRole === role.value ? "solid" : "soft"}
+            selected={selectedRole === role.value}
           >
             {role.label}
-          </Button>
+          </FilterButton>
         ))}
-      </Stack>
+      </FilterGroup>
+
+      <FilterGroup label="변경 타입">
+        {changeTypes.map((changeType) => (
+          <FilterButton
+            key={changeType.value}
+            onClick={() => onChangeTypeChange(changeType.value)}
+            selected={selectedChangeType === changeType.value}
+          >
+            {changeType.label}
+          </FilterButton>
+        ))}
+      </FilterGroup>
+
+      <FilterGroup label="영향도">
+        {impactLevels.map((impactLevel) => (
+          <FilterButton
+            key={impactLevel.value}
+            onClick={() => onImpactLevelChange(impactLevel.value)}
+            selected={selectedImpactLevel === impactLevel.value}
+          >
+            {impactLevel.label}
+          </FilterButton>
+        ))}
+      </FilterGroup>
 
       <FormControl id="search">
         <FormLabel>영웅 검색</FormLabel>
@@ -215,6 +338,44 @@ export function PatchFilters({
         />
       </FormControl>
     </Box>
+  );
+}
+
+function FilterGroup({
+  children,
+  label,
+}: {
+  children: ReactNode;
+  label: string;
+}) {
+  return (
+    <FormControl>
+      <FormLabel>{label}</FormLabel>
+      <Stack className={styles.segmentedControl} direction="row" spacing={0.75}>
+        {children}
+      </Stack>
+    </FormControl>
+  );
+}
+
+function FilterButton({
+  children,
+  onClick,
+  selected,
+}: {
+  children: ReactNode;
+  onClick: () => void;
+  selected: boolean;
+}) {
+  return (
+    <Button
+      color={selected ? "primary" : "neutral"}
+      onClick={onClick}
+      size="sm"
+      variant={selected ? "solid" : "soft"}
+    >
+      {children}
+    </Button>
   );
 }
 

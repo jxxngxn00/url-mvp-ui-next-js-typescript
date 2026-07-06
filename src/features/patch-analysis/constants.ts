@@ -1,11 +1,30 @@
 import type { ChangeType, HeroRole, ImpactLevel } from "./types";
 
+export const DEFAULT_PATCH_ID = "ow2-2026-06-sample";
+
 export const roles: Array<{ label: string; value: HeroRole | "ALL" }> = [
   { label: "전체", value: "ALL" },
   { label: "탱커", value: "TANK" },
   { label: "공격", value: "DAMAGE" },
   { label: "지원", value: "SUPPORT" },
 ];
+
+export const changeTypes: Array<{ label: string; value: ChangeType | "ALL" }> =
+  [
+    { label: "전체", value: "ALL" },
+    { label: "상향", value: "BUFF" },
+    { label: "하향", value: "NERF" },
+    { label: "조정", value: "ADJUSTMENT" },
+    { label: "버그 수정", value: "BUG_FIX" },
+  ];
+
+export const impactLevels: Array<{ label: string; value: ImpactLevel | "ALL" }> =
+  [
+    { label: "전체", value: "ALL" },
+    { label: "낮음", value: "LOW" },
+    { label: "보통", value: "MEDIUM" },
+    { label: "높음", value: "HIGH" },
+  ];
 
 export const changeTypeLabel: Record<ChangeType, string> = {
   BUFF: "상향",

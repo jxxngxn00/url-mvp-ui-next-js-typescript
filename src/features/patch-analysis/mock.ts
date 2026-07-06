@@ -1,7 +1,7 @@
 import { patchAnalysisSchema } from "./schema";
 import type { PatchAnalysis } from "./types";
 
-export const patchAnalysis: PatchAnalysis = patchAnalysisSchema.parse({
+export const devFallbackPatchAnalysis: PatchAnalysis = patchAnalysisSchema.parse({
   patchId: "ow2-2026-06-sample",
   patchTitle: "시즌 중반 밸런스 패치 샘플",
   patchDate: "2026-06-20",

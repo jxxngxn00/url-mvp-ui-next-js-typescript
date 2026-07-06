@@ -29,6 +29,12 @@
   font-weight: 800;
 }
 
+.brandMark img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
 .sidebar {
   display: none;
 }
@@ -41,12 +47,35 @@
 .summaryPanel,
 .metaPanel,
 .heroCard,
+.patchListPanel,
 .stateCard {
   box-shadow: 0 8px 24px rgb(22 32 50 / 6%);
 }
 
-.summaryPanel {
+.patchListPanel {
   margin-top: 10px;
+}
+
+.patchList {
+  margin-top: 14px;
+}
+
+.patchListItem {
+  width: 100%;
+  min-height: 112px;
+  justify-content: flex-start;
+  border-radius: 8px;
+  text-align: left;
+}
+
+.patchListItemBody {
+  display: grid;
+  width: 100%;
+  gap: 8px;
+}
+
+.summaryPanel {
+  margin-top: 12px;
 }
 
 .summaryGrid {
@@ -151,7 +180,7 @@
   }
 
   .toolbar {
-    grid-template-columns: minmax(360px, 520px) minmax(220px, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     align-items: end;
   }
 
@@ -188,5 +217,12 @@
   .content {
     margin: 0;
     padding: 36px;
+  }
+
+  .toolbar {
+    grid-template-columns: minmax(260px, 1.1fr) minmax(300px, 1.3fr) minmax(
+        220px,
+        0.9fr
+      ) minmax(220px, 1fr);
   }
 }

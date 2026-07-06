@@ -9,26 +9,44 @@ import {
   HeroChangeList,
   MetaSummaryPanel,
   PatchFilters,
+  PatchListPanel,
   PatchSummaryPanel,
   SideNavigation,
   StateCard,
 } from "@/features/patch-analysis/components";
-import { patchAnalysis } from "@/features/patch-analysis/mock";
-import type { HeroRole } from "@/features/patch-analysis/types";
+import { fetchPatchAnalysis, fetchPatchList } from "@/features/patch-analysis/api";
+import { DEFAULT_PATCH_ID } from "@/features/patch-analysis/constants";
+import type {
+  ChangeType,
+  HeroRole,
+  ImpactLevel,
+} from "@/features/patch-analysis/types";
 import styles from "./page.module.css";
 import logoIcon from "./logo_icons.png";
 
-async function getPatchAnalysis() {
-  return patchAnalysis;
-}
-
 export default function Home() {
   const [selectedRole, setSelectedRole] = useState<HeroRole | "ALL">("ALL");
+  const [selectedPatchId, setSelectedPatchId] = useState(DEFAULT_PATCH_ID);
+  const [selectedChangeType, setSelectedChangeType] = useState<
+    ChangeType | "ALL"
+  >("ALL");
+  const [selectedImpactLevel, setSelectedImpactLevel] = useState<
+    ImpactLevel | "ALL"
+  >("ALL");
   const [keyword, setKeyword] = useState("");
 
+  const {
+    data: patches = [],
+    isLoading: isPatchListLoading,
+    isError: isPatchListError,
+  } = useQuery({
+    queryKey: ["patches"],
+    queryFn: fetchPatchList,
+  });
+
   const { data, isLoading, isError } = useQuery({
-    queryKey: ["patch-analysis", patchAnalysis.patchId],
-    queryFn: getPatchAnalysis,
+    queryKey: ["patch-analysis", selectedPatchId],
+    queryFn: () => fetchPatchAnalysis(selectedPatchId),
   });
 
   const filteredChanges = useMemo(() => {
@@ -41,16 +59,27 @@ export default function Home() {
     return data.changes.filter((change) => {
       const matchesRole =
         selectedRole === "ALL" || change.hero.role === selectedRole;
+      const matchesChangeType =
+        selectedChangeType === "ALL" ||
+        change.changeType === selectedChangeType;
+      const matchesImpactLevel =
+        selectedImpactLevel === "ALL" ||
+        change.impactLevel === selectedImpactLevel;
       const matchesKeyword =
         normalizedKeyword.length === 0 ||
         change.hero.nameKo.includes(normalizedKeyword) ||
         change.hero.nameEn.toLowerCase().includes(normalizedKeyword);
 
-      return matchesRole && matchesKeyword;
+      return (
+        matchesRole &&
+        matchesChangeType &&
+        matchesImpactLevel &&
+        matchesKeyword
+      );
     });
-  }, [data, keyword, selectedRole]);
+  }, [data, keyword, selectedChangeType, selectedImpactLevel, selectedRole]);
 
-  if (isError) {
+  if (isError || isPatchListError) {
     return (
       <StateCard
         description="잠시 후 다시 시도해 주세요."
@@ -59,7 +88,7 @@ export default function Home() {
     );
   }
 
-  if (isLoading || !data) {
+  if (isLoading || isPatchListLoading || !data) {
     return <StateCard title="패치 분석을 불러오는 중입니다." />;
   }
 
@@ -76,16 +105,25 @@ export default function Home() {
           <Brand logo={logoIcon} />
         </header>
 
+        <PatchListPanel
+          onPatchSelect={setSelectedPatchId}
+          patches={patches}
+          selectedPatchId={selectedPatchId}
+        />
         <PatchSummaryPanel
           highImpactCount={highImpactChanges.length}
           patch={data}
-          status="Mock"
+          status="DB"
         />
         <MetaSummaryPanel summary={data.metaSummary} />
         <PatchFilters
           keyword={keyword}
+          onChangeTypeChange={setSelectedChangeType}
+          onImpactLevelChange={setSelectedImpactLevel}
           onKeywordChange={setKeyword}
           onRoleChange={setSelectedRole}
+          selectedChangeType={selectedChangeType}
+          selectedImpactLevel={selectedImpactLevel}
           selectedRole={selectedRole}
         />
         <HeroChangeList changes={filteredChanges} />
