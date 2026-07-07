@@ -421,7 +421,13 @@ function HeroChangeCard({ change }: { change: HeroChange }) {
         <Stack alignItems="center" direction="row" minWidth={0} spacing={1.5}>
           <Box className={styles.heroAvatar}>{change.hero.nameKo.slice(0, 1)}</Box>
           <Box minWidth={0}>
-            <Typography level="title-lg">{change.hero.nameKo}</Typography>
+            <Typography
+              component="a"
+              href={`/heroes/${change.hero.heroId}`}
+              level="title-lg"
+            >
+              {change.hero.nameKo}
+            </Typography>
             <Typography level="body-sm" textColor="text.tertiary">
               {change.hero.nameEn} · {roleLabel[change.hero.role]}
             </Typography>

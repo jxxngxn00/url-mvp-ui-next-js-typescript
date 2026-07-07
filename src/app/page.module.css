@@ -134,6 +134,39 @@
   font-weight: 900;
 }
 
+.heroDetailHeroPanel {
+  margin-top: 10px;
+  box-shadow: 0 8px 24px rgb(22 32 50 / 6%);
+}
+
+.heroDetailAvatar {
+  display: inline-flex;
+  width: 72px;
+  height: 72px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 8px;
+  background: #162032;
+  color: #ffffff;
+  font-size: 28px;
+  font-weight: 900;
+}
+
+.heroDetailAvatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.heroDetailStats,
+.heroRelationGrid {
+  display: grid;
+  gap: 8px;
+  margin-top: 16px;
+}
+
 .changeBody {
   display: grid;
   gap: 12px;
@@ -190,6 +223,14 @@
 
   .cardFooter {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .heroDetailStats {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .heroRelationGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
