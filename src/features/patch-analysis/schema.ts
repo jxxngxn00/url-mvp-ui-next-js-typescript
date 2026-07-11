@@ -42,6 +42,17 @@ export const patchAnalysisSchema = z.object({
   changes: z.array(heroChangeSchema),
 });
 
+export const patchAnalysisInputSchema = patchAnalysisSchema
+  .pick({
+    patchId: true,
+    patchTitle: true,
+    patchDate: true,
+    sourceUrl: true,
+  })
+  .extend({
+    rawContent: z.string().min(1),
+  });
+
 export const patchSummarySchema = patchAnalysisSchema
   .omit({
     changes: true,

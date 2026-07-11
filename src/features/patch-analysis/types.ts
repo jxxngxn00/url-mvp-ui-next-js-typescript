@@ -5,6 +5,7 @@ import type {
   heroInfoSchema,
   heroRoleSchema,
   impactLevelSchema,
+  patchAnalysisInputSchema,
   patchAnalysisSchema,
   patchSummarySchema,
 } from "./schema";
@@ -14,5 +15,6 @@ export type ChangeType = z.infer<typeof changeTypeSchema>;
 export type ImpactLevel = z.infer<typeof impactLevelSchema>;
 export type HeroInfo = z.infer<typeof heroInfoSchema>;
 export type HeroChange = z.infer<typeof heroChangeSchema>;
+export type PatchAnalysisInput = z.infer<typeof patchAnalysisInputSchema>;
 export type PatchAnalysis = z.infer<typeof patchAnalysisSchema>;
 export type PatchSummary = z.infer<typeof patchSummarySchema>;

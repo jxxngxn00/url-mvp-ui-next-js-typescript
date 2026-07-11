@@ -1,5 +1,9 @@
 import { z } from "zod";
-import { patchAnalysisSchema, patchSummarySchema } from "./schema";
+import {
+  patchAnalysisInputSchema,
+  patchAnalysisSchema,
+  patchSummarySchema,
+} from "./schema";
 import type { PatchAnalysis, PatchSummary } from "./types";
 
 export const patchListResponseSchema = z.object({
@@ -17,10 +21,40 @@ export const patchAnalysisErrorResponseSchema = z.object({
   }),
 });
 
+export const patchAnalyzeRequestSchema = patchAnalysisInputSchema;
+
+export const patchAnalyzeResponseSchema = z.object({
+  data: patchAnalysisSchema,
+  meta: z.object({
+    saved: z.boolean(),
+  }),
+});
+
+export const patchAnalyzeErrorCodeSchema = z.enum([
+  "INVALID_ANALYZE_REQUEST",
+  "LLM_ANALYSIS_FAILED",
+  "INVALID_ANALYSIS_JSON",
+  "ANALYSIS_SAVE_FAILED",
+]);
+
+export const patchAnalyzeErrorResponseSchema = z.object({
+  error: z.object({
+    code: patchAnalyzeErrorCodeSchema,
+    message: z.string(),
+    issues: z.array(z.string()).optional(),
+  }),
+});
+
 export type PatchListResponse = z.infer<typeof patchListResponseSchema>;
 export type PatchAnalysisResponse = z.infer<typeof patchAnalysisResponseSchema>;
 export type PatchAnalysisErrorResponse = z.infer<
   typeof patchAnalysisErrorResponseSchema
+>;
+export type PatchAnalyzeRequest = z.infer<typeof patchAnalyzeRequestSchema>;
+export type PatchAnalyzeResponse = z.infer<typeof patchAnalyzeResponseSchema>;
+export type PatchAnalyzeErrorCode = z.infer<typeof patchAnalyzeErrorCodeSchema>;
+export type PatchAnalyzeErrorResponse = z.infer<
+  typeof patchAnalyzeErrorResponseSchema
 >;
 
 const isDevelopment = process.env.NODE_ENV === "development";
