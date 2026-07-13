@@ -29,6 +29,7 @@ import type {
   HeroChange,
   HeroRole,
   ImpactLevel,
+  MetaTimelinePatch,
   PatchAnalysis,
   PatchSummary,
 } from "./types";
@@ -70,7 +71,7 @@ export function SideNavigation({ logo }: { logo: StaticImageData }) {
         <Button component="a" href="#heroes" variant="plain">
           영웅 분석
         </Button>
-        <Button component="a" href="#meta" variant="plain">
+        <Button component="a" href="#meta-timeline" variant="plain">
           메타 타임라인
         </Button>
         <Button component="a" href="#search" variant="plain">
@@ -90,7 +91,7 @@ export function BottomNavigation() {
       <Button component="a" href="#heroes" variant="plain">
         영웅
       </Button>
-      <Button component="a" href="#meta" variant="plain">
+      <Button component="a" href="#meta-timeline" variant="plain">
         메타
       </Button>
       <Button component="a" href="#search" variant="plain">
@@ -103,21 +104,50 @@ export function BottomNavigation() {
 export function StateCard({
   title,
   description,
+  action,
 }: {
   title: string;
   description?: string;
+  action?: ReactNode;
 }) {
   return (
     <main className={styles.page}>
-      <Card className={styles.stateCard}>
+      <Card className={styles.stateCard} variant="outlined">
+        <Stack spacing={1.25}>
+          <Typography level="title-md">{title}</Typography>
+          {description ? (
+            <Typography level="body-sm" textColor="text.tertiary">
+              {description}
+            </Typography>
+          ) : null}
+          {action ? <Box className={styles.stateAction}>{action}</Box> : null}
+        </Stack>
+      </Card>
+    </main>
+  );
+}
+
+export function InlineStateCard({
+  title,
+  description,
+  action,
+}: {
+  title: string;
+  description?: string;
+  action?: ReactNode;
+}) {
+  return (
+    <Card className={styles.inlineStateCard} variant="outlined">
+      <Stack spacing={1}>
         <Typography level="title-md">{title}</Typography>
         {description ? (
           <Typography level="body-sm" textColor="text.tertiary">
             {description}
           </Typography>
         ) : null}
-      </Card>
-    </main>
+        {action ? <Box className={styles.stateAction}>{action}</Box> : null}
+      </Stack>
+    </Card>
   );
 }
 
@@ -134,6 +164,7 @@ export function PatchListPanel({
     <Card className={styles.patchListPanel} variant="outlined">
       <Stack
         alignItems="center"
+        className={styles.panelHeader}
         direction="row"
         justifyContent="space-between"
         spacing={2}
@@ -151,9 +182,10 @@ export function PatchListPanel({
 
       <Stack className={styles.patchList} component="section" spacing={1}>
         {patches.length === 0 ? (
-          <Sheet className={styles.patchListItem} variant="soft">
-            <Typography level="body-sm">아직 분석된 패치가 없습니다.</Typography>
-          </Sheet>
+          <InlineStateCard
+            description="패치 분석을 실행하면 이곳에 저장된 패치가 표시됩니다."
+            title="아직 분석된 패치가 없습니다."
+          />
         ) : (
           patches.map((patch) => {
             const selected = patch.patchId === selectedPatchId;
@@ -169,6 +201,7 @@ export function PatchListPanel({
                 <Box className={styles.patchListItemBody}>
                   <Stack
                     alignItems="center"
+                    className={styles.patchListItemHeader}
                     direction="row"
                     justifyContent="space-between"
                     spacing={1.5}
@@ -217,6 +250,7 @@ export function PatchSummaryPanel({
     <Card className={styles.summaryPanel} id="patches" variant="outlined">
       <Stack
         alignItems="center"
+        className={styles.panelHeader}
         direction="row"
         justifyContent="space-between"
         spacing={2}
@@ -267,6 +301,140 @@ export function MetaSummaryPanel({ summary }: { summary: string }) {
       <Typography level="body-md" textColor="text.secondary">
         {summary}
       </Typography>
+    </Card>
+  );
+}
+
+export function MetaTimelinePanel({
+  patches,
+}: {
+  patches: MetaTimelinePatch[];
+}) {
+  const totalEntryCount = patches.reduce(
+    (count, patch) => count + patch.entries.length,
+    0,
+  );
+
+  return (
+    <Card className={styles.timelinePanel} id="meta-timeline" variant="outlined">
+      <Stack
+        alignItems="center"
+        className={styles.panelHeader}
+        direction="row"
+        justifyContent="space-between"
+        spacing={2}
+      >
+        <Box>
+          <Typography level="title-md">메타 타임라인</Typography>
+          <Typography level="body-sm" textColor="text.tertiary">
+            패치별 메타 영향 흐름을 시간순으로 확인하세요.
+          </Typography>
+        </Box>
+        <Chip size="sm" variant="soft">
+          {totalEntryCount}개 변화
+        </Chip>
+      </Stack>
+
+      {totalEntryCount === 0 ? (
+        <InlineStateCard
+          description="필터나 검색어를 조정하면 다른 메타 변화가 표시됩니다."
+          title="표시할 메타 변화가 없습니다."
+        />
+      ) : (
+        <Stack className={styles.timelineList} component="ol">
+          {patches.map((patch) => (
+            <Box className={styles.timelinePatch} component="li" key={patch.patchId}>
+              <Box className={styles.timelineMarker} />
+              <Box className={styles.timelinePatchBody}>
+                <Stack
+                  alignItems="flex-start"
+                  className={styles.panelHeader}
+                  direction="row"
+                  justifyContent="space-between"
+                  spacing={1.5}
+                >
+                  <Box className={styles.heroTitleBlock}>
+                    <Typography component="h3" level="title-md">
+                      {patch.patchTitle}
+                    </Typography>
+                    <Typography
+                      component="time"
+                      dateTime={patch.patchDate}
+                      level="body-xs"
+                      textColor="text.tertiary"
+                    >
+                      {patch.patchDate}
+                    </Typography>
+                  </Box>
+                  <Chip color="danger" size="sm" variant="soft">
+                    높은 영향 {patch.highImpactChangeCount}
+                  </Chip>
+                </Stack>
+
+                <Typography level="body-sm" textColor="text.secondary">
+                  {patch.metaSummary}
+                </Typography>
+
+                <Stack className={styles.timelineEntryList} spacing={1}>
+                  {patch.entries.map((entry) => (
+                    <Sheet
+                      className={styles.timelineEntry}
+                      key={entry.timelineId}
+                      variant="soft"
+                    >
+                      <Stack
+                        alignItems="flex-start"
+                        className={styles.heroCardHeader}
+                        direction="row"
+                        justifyContent="space-between"
+                        spacing={1}
+                      >
+                        <Box className={styles.heroTitleBlock}>
+                          <Typography
+                            component="a"
+                            href={`/heroes/${entry.hero.heroId}`}
+                            level="title-sm"
+                          >
+                            {entry.hero.nameKo}
+                          </Typography>
+                          <Typography level="body-xs" textColor="text.tertiary">
+                            {entry.hero.nameEn} · {roleLabel[entry.hero.role]}
+                          </Typography>
+                        </Box>
+                        <Stack
+                          className={styles.chipRow}
+                          direction="row"
+                          flexWrap="wrap"
+                          gap={0.75}
+                        >
+                          <Chip
+                            color={changeTypeColor[entry.changeType]}
+                            size="sm"
+                            variant="soft"
+                          >
+                            {changeTypeLabel[entry.changeType]}
+                          </Chip>
+                          <Chip
+                            color={impactColor[entry.impactLevel]}
+                            size="sm"
+                            variant="soft"
+                          >
+                            영향 {impactLabel[entry.impactLevel]}
+                          </Chip>
+                        </Stack>
+                      </Stack>
+
+                      <Typography level="body-sm" textColor="text.secondary">
+                        {entry.metaImpact}
+                      </Typography>
+                    </Sheet>
+                  ))}
+                </Stack>
+              </Box>
+            </Box>
+          ))}
+        </Stack>
+      )}
     </Card>
   );
 }
@@ -383,12 +551,10 @@ export function HeroChangeList({ changes }: { changes: HeroChange[] }) {
   return (
     <Stack className={styles.cardList} component="section" id="heroes">
       {changes.length === 0 ? (
-        <Card variant="outlined">
-          <Typography level="title-md">일치하는 변경사항이 없습니다.</Typography>
-          <Typography level="body-sm" textColor="text.tertiary">
-            역할 필터나 검색어를 조정해 주세요.
-          </Typography>
-        </Card>
+        <InlineStateCard
+          description="역할, 변경 타입, 영향도 또는 검색어를 조정해 주세요."
+          title="일치하는 변경사항이 없습니다."
+        />
       ) : (
         changes.map((change) => (
           <HeroChangeCard change={change} key={change.changeId} />
@@ -420,7 +586,7 @@ function HeroChangeCard({ change }: { change: HeroChange }) {
       >
         <Stack alignItems="center" direction="row" minWidth={0} spacing={1.5}>
           <Box className={styles.heroAvatar}>{change.hero.nameKo.slice(0, 1)}</Box>
-          <Box minWidth={0}>
+          <Box className={styles.heroTitleBlock} minWidth={0}>
             <Typography
               component="a"
               href={`/heroes/${change.hero.heroId}`}
@@ -434,7 +600,7 @@ function HeroChangeCard({ change }: { change: HeroChange }) {
           </Box>
         </Stack>
 
-        <Stack direction="row" flexWrap="wrap" gap={0.75}>
+        <Stack className={styles.chipRow} direction="row" flexWrap="wrap" gap={0.75}>
           <Chip color={changeTypeColor[change.changeType]} size="sm" variant="soft">
             {changeTypeLabel[change.changeType]}
           </Chip>

@@ -1,6 +1,6 @@
 "use client";
 
-import { Box } from "@mui/joy";
+import { Box, Button } from "@mui/joy";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import {
@@ -8,13 +8,18 @@ import {
   Brand,
   HeroChangeList,
   MetaSummaryPanel,
+  MetaTimelinePanel,
   PatchFilters,
   PatchListPanel,
   PatchSummaryPanel,
   SideNavigation,
   StateCard,
 } from "@/features/patch-analysis/components";
-import { fetchPatchAnalysis, fetchPatchList } from "@/features/patch-analysis/api";
+import {
+  fetchMetaTimeline,
+  fetchPatchAnalysis,
+  fetchPatchList,
+} from "@/features/patch-analysis/api";
 import { DEFAULT_PATCH_ID } from "@/features/patch-analysis/constants";
 import type {
   ChangeType,
@@ -39,12 +44,28 @@ export default function Home() {
     data: patches = [],
     isLoading: isPatchListLoading,
     isError: isPatchListError,
+    refetch: refetchPatchList,
   } = useQuery({
     queryKey: ["patches"],
     queryFn: fetchPatchList,
   });
 
-  const { data, isLoading, isError } = useQuery({
+  const {
+    data: timeline = [],
+    isLoading: isTimelineLoading,
+    isError: isTimelineError,
+    refetch: refetchTimeline,
+  } = useQuery({
+    queryKey: ["meta-timeline"],
+    queryFn: fetchMetaTimeline,
+  });
+
+  const {
+    data,
+    isLoading,
+    isError,
+    refetch: refetchPatchAnalysis,
+  } = useQuery({
     queryKey: ["patch-analysis", selectedPatchId],
     queryFn: () => fetchPatchAnalysis(selectedPatchId),
   });
@@ -79,16 +100,60 @@ export default function Home() {
     });
   }, [data, keyword, selectedChangeType, selectedImpactLevel, selectedRole]);
 
-  if (isError || isPatchListError) {
+  const filteredTimeline = useMemo(() => {
+    const normalizedKeyword = keyword.trim().toLowerCase();
+
+    return timeline
+      .map((patch) => ({
+        ...patch,
+        entries: patch.entries.filter((entry) => {
+          const matchesRole =
+            selectedRole === "ALL" || entry.hero.role === selectedRole;
+          const matchesChangeType =
+            selectedChangeType === "ALL" ||
+            entry.changeType === selectedChangeType;
+          const matchesImpactLevel =
+            selectedImpactLevel === "ALL" ||
+            entry.impactLevel === selectedImpactLevel;
+          const matchesKeyword =
+            normalizedKeyword.length === 0 ||
+            entry.hero.nameKo.includes(normalizedKeyword) ||
+            entry.hero.nameEn.toLowerCase().includes(normalizedKeyword);
+
+          return (
+            matchesRole &&
+            matchesChangeType &&
+            matchesImpactLevel &&
+            matchesKeyword
+          );
+        }),
+      }))
+      .filter((patch) => patch.entries.length > 0);
+  }, [keyword, selectedChangeType, selectedImpactLevel, selectedRole, timeline]);
+
+  if (isError || isPatchListError || isTimelineError) {
     return (
       <StateCard
+        action={
+          <Button
+            onClick={() => {
+              void refetchPatchList();
+              void refetchPatchAnalysis();
+              void refetchTimeline();
+            }}
+            size="sm"
+            variant="soft"
+          >
+            다시 시도
+          </Button>
+        }
         description="잠시 후 다시 시도해 주세요."
         title="패치 분석을 불러오지 못했습니다."
       />
     );
   }
 
-  if (isLoading || isPatchListLoading || !data) {
+  if (isLoading || isPatchListLoading || isTimelineLoading || !data) {
     return <StateCard title="패치 분석을 불러오는 중입니다." />;
   }
 
@@ -126,6 +191,7 @@ export default function Home() {
           selectedImpactLevel={selectedImpactLevel}
           selectedRole={selectedRole}
         />
+        <MetaTimelinePanel patches={filteredTimeline} />
         <HeroChangeList changes={filteredChanges} />
       </Box>
 

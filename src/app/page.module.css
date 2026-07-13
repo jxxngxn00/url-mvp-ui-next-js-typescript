@@ -4,10 +4,12 @@
   color: var(--joy-palette-text-primary);
 }
 
+/* Mobile is the default layout. Keep these page-level offsets together so a future
+   navigation redesign only has one place to revisit. */
 .content {
   width: min(100%, 1120px);
   margin: 0 auto;
-  padding: 20px 16px 96px;
+  padding: 16px 14px calc(96px + env(safe-area-inset-bottom));
 }
 
 .mobileHeader {
@@ -39,16 +41,19 @@
   display: none;
 }
 
-.nav a,
-.bottomNav a {
+.nav a {
   justify-content: flex-start;
 }
 
+/* Shared card treatment for the current MVP shell. If the UI is redesigned,
+   this block is the main place to flatten or replace card elevation. */
 .summaryPanel,
 .metaPanel,
 .heroCard,
 .patchListPanel,
-.stateCard {
+.timelinePanel,
+.stateCard,
+.inlineStateCard {
   box-shadow: 0 8px 24px rgb(22 32 50 / 6%);
 }
 
@@ -60,17 +65,34 @@
   margin-top: 14px;
 }
 
+.panelHeader,
+.patchListItemHeader,
+.heroCardHeader,
+.heroDetailHeader {
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.panelHeader > :first-child,
+.patchListItemHeader > :first-child,
+.heroCardHeader > :first-child,
+.heroDetailHeader > :first-child {
+  min-width: 0;
+}
+
 .patchListItem {
   width: 100%;
-  min-height: 112px;
+  min-height: 104px;
   justify-content: flex-start;
   border-radius: 8px;
   text-align: left;
+  white-space: normal;
 }
 
 .patchListItemBody {
   display: grid;
   width: 100%;
+  min-width: 0;
   gap: 8px;
 }
 
@@ -86,12 +108,17 @@
 
 .stats {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
+}
+
+.stats > :last-child {
+  grid-column: 1 / -1;
 }
 
 .statCard,
 .miniSummary {
+  min-width: 0;
   border-radius: 8px;
   padding: 12px;
 }
@@ -100,19 +127,89 @@
   margin-top: 12px;
 }
 
+.timelinePanel {
+  margin-top: 18px;
+}
+
+/* Timeline visuals are intentionally isolated from the card list. If the later
+   redesign moves to charts or a horizontal scrubber, this block can be replaced
+   without touching the API or filtering logic. */
+.timelineList {
+  position: relative;
+  gap: 16px;
+  margin-top: 18px;
+  padding-left: 18px;
+  list-style: none;
+}
+
+.timelineList::before {
+  position: absolute;
+  top: 6px;
+  bottom: 6px;
+  left: 5px;
+  width: 2px;
+  border-radius: 999px;
+  background: var(--joy-palette-divider);
+  content: "";
+}
+
+.timelinePatch {
+  position: relative;
+  display: grid;
+  grid-template-columns: 0 minmax(0, 1fr);
+  gap: 12px;
+}
+
+.timelineMarker {
+  position: relative;
+  z-index: 1;
+  width: 12px;
+  height: 12px;
+  margin-top: 6px;
+  margin-left: -18px;
+  border: 3px solid var(--joy-palette-background-surface);
+  border-radius: 999px;
+  background: var(--joy-palette-primary-500);
+  box-shadow: 0 0 0 1px var(--joy-palette-primary-200);
+}
+
+.timelinePatchBody {
+  display: grid;
+  min-width: 0;
+  gap: 10px;
+}
+
+.timelineEntryList {
+  margin-top: 2px;
+}
+
+.timelineEntry {
+  display: grid;
+  min-width: 0;
+  gap: 8px;
+  border-radius: 8px;
+  padding: 12px;
+}
+
 .toolbar {
   display: grid;
   gap: 12px;
   margin-top: 18px;
 }
 
+/* Segmented filters intentionally scroll on narrow screens instead of wrapping
+   into a tall control stack. This keeps the patch summary close to the cards. */
 .segmentedControl {
+  max-width: 100%;
   overflow-x: auto;
   padding-bottom: 2px;
+  scrollbar-width: thin;
 }
 
 .segmentedControl button {
-  min-width: 68px;
+  min-width: 72px;
+  min-height: 38px;
+  flex: 0 0 auto;
 }
 
 .cardList {
@@ -132,6 +229,23 @@
   color: #ffffff;
   font-size: 18px;
   font-weight: 900;
+}
+
+.heroTitleBlock {
+  min-width: 0;
+}
+
+.heroTitleBlock h1,
+.heroTitleBlock a,
+.heroTitleBlock p,
+.patchListItemBody h3,
+.patchListItemBody p,
+.miniSummary p {
+  overflow-wrap: anywhere;
+}
+
+.chipRow {
+  max-width: 100%;
 }
 
 .heroDetailHeroPanel {
@@ -180,7 +294,7 @@
 .bottomNav {
   position: fixed;
   right: 12px;
-  bottom: 12px;
+  bottom: calc(12px + env(safe-area-inset-bottom));
   left: 12px;
   z-index: 10;
   display: grid;
@@ -193,8 +307,11 @@
 }
 
 .bottomNav a {
-  min-height: 42px;
+  min-width: 0;
+  min-height: 44px;
   justify-content: center;
+  padding-inline: 6px;
+  white-space: nowrap;
 }
 
 .stateCard {
@@ -202,9 +319,29 @@
   margin: 20vh auto 0;
 }
 
+.inlineStateCard {
+  width: 100%;
+  background: var(--joy-palette-background-surface);
+}
+
+.stateAction {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 4px;
+}
+
 @media (min-width: 760px) {
   .content {
     padding: 32px 24px 48px;
+  }
+
+  .stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .stats > :last-child {
+    grid-column: auto;
   }
 
   .summaryGrid {
@@ -234,7 +371,32 @@
   }
 }
 
+@media (max-width: 480px) {
+  /* This breakpoint only handles collision-prone rows. Broader layout choices
+     stay in the mobile defaults above so a redesign can replace them cleanly. */
+  .content {
+    padding-inline: 12px;
+  }
+
+  .panelHeader,
+  .patchListItemHeader,
+  .heroCardHeader,
+  .heroDetailHeader {
+    align-items: flex-start;
+  }
+
+  .heroDetailHeader a {
+    width: 100%;
+  }
+
+  .stateCard {
+    margin-top: 16vh;
+  }
+}
+
 @media (min-width: 1120px) {
+  /* Desktop switches to a persistent sidebar. Mobile spacing above should stay
+     independent so bottom navigation changes do not leak into desktop. */
   .page {
     display: grid;
     grid-template-columns: 260px minmax(0, 1fr);

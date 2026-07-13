@@ -1,6 +1,14 @@
 import type { Prisma } from "@/generated/prisma/client";
-import { patchAnalysisSchema, patchSummarySchema } from "./schema";
-import type { PatchAnalysis, PatchSummary } from "./types";
+import {
+  metaTimelinePatchSchema,
+  patchAnalysisSchema,
+  patchSummarySchema,
+} from "./schema";
+import type {
+  MetaTimelinePatch,
+  PatchAnalysis,
+  PatchSummary,
+} from "./types";
 
 export const patchAnalysisInclude = {
   changes: {
@@ -40,6 +48,28 @@ export const patchSummaryInclude = {
 
 export type PatchSummaryRecord = Prisma.PatchNoteGetPayload<{
   include: typeof patchSummaryInclude;
+}>;
+
+export const metaTimelineInclude = {
+  changes: {
+    include: {
+      hero: true,
+    },
+    orderBy: [
+      {
+        impactLevel: "desc",
+      },
+      {
+        hero: {
+          nameKo: "asc",
+        },
+      },
+    ],
+  },
+} satisfies Prisma.PatchNoteInclude;
+
+export type MetaTimelinePatchRecord = Prisma.PatchNoteGetPayload<{
+  include: typeof metaTimelineInclude;
 }>;
 
 function formatPatchDate(date: Date) {
@@ -92,6 +122,34 @@ export function mapPatchNoteToPatchAnalysis(
       recommendedPlaystyle: change.recommendedPlaystyle,
       counterPicks: change.counters.map((counter) => counter.targetHero.nameKo),
       synergyPicks: change.synergies.map((synergy) => synergy.targetHero.nameKo),
+    })),
+  });
+}
+
+export function mapPatchNoteToMetaTimelinePatch(
+  patchNote: MetaTimelinePatchRecord,
+): MetaTimelinePatch {
+  return metaTimelinePatchSchema.parse({
+    patchId: patchNote.patchId,
+    patchTitle: patchNote.title,
+    patchDate: formatPatchDate(patchNote.patchDate),
+    metaSummary: patchNote.metaSummary,
+    highImpactChangeCount: countHighImpactChanges(patchNote.changes),
+    entries: patchNote.changes.map((change) => ({
+      timelineId: `${patchNote.patchId}:${change.changeId}`,
+      patchId: patchNote.patchId,
+      patchTitle: patchNote.title,
+      patchDate: formatPatchDate(patchNote.patchDate),
+      hero: {
+        heroId: change.hero.heroId,
+        nameKo: change.hero.nameKo,
+        nameEn: change.hero.nameEn,
+        role: change.hero.role,
+      },
+      changeType: change.changeType,
+      impactLevel: change.impactLevel,
+      simpleSummary: change.simpleSummary,
+      metaImpact: change.metaImpact,
     })),
   });
 }

@@ -2,9 +2,10 @@ import { z } from "zod";
 import {
   patchAnalysisInputSchema,
   patchAnalysisSchema,
+  metaTimelinePatchSchema,
   patchSummarySchema,
 } from "./schema";
-import type { PatchAnalysis, PatchSummary } from "./types";
+import type { MetaTimelinePatch, PatchAnalysis, PatchSummary } from "./types";
 
 export const patchListResponseSchema = z.object({
   data: z.array(patchSummarySchema),
@@ -12,6 +13,10 @@ export const patchListResponseSchema = z.object({
 
 export const patchAnalysisResponseSchema = z.object({
   data: patchAnalysisSchema,
+});
+
+export const metaTimelineResponseSchema = z.object({
+  data: z.array(metaTimelinePatchSchema),
 });
 
 export const patchAnalysisErrorResponseSchema = z.object({
@@ -47,6 +52,7 @@ export const patchAnalyzeErrorResponseSchema = z.object({
 
 export type PatchListResponse = z.infer<typeof patchListResponseSchema>;
 export type PatchAnalysisResponse = z.infer<typeof patchAnalysisResponseSchema>;
+export type MetaTimelineResponse = z.infer<typeof metaTimelineResponseSchema>;
 export type PatchAnalysisErrorResponse = z.infer<
   typeof patchAnalysisErrorResponseSchema
 >;
@@ -81,6 +87,34 @@ async function getDevFallbackPatchList(): Promise<PatchSummary[]> {
       metaSummary: fallback.metaSummary,
       changeCount: fallback.changes.length,
       highImpactChangeCount,
+    }),
+  ];
+}
+
+async function getDevFallbackMetaTimeline(): Promise<MetaTimelinePatch[]> {
+  const fallback = await getDevFallbackPatchAnalysis();
+  const highImpactChangeCount = fallback.changes.filter(
+    (change) => change.impactLevel === "HIGH",
+  ).length;
+
+  return [
+    metaTimelinePatchSchema.parse({
+      patchId: fallback.patchId,
+      patchTitle: fallback.patchTitle,
+      patchDate: fallback.patchDate,
+      metaSummary: fallback.metaSummary,
+      highImpactChangeCount,
+      entries: fallback.changes.map((change) => ({
+        timelineId: `${fallback.patchId}:${change.changeId}`,
+        patchId: fallback.patchId,
+        patchTitle: fallback.patchTitle,
+        patchDate: fallback.patchDate,
+        hero: change.hero,
+        changeType: change.changeType,
+        impactLevel: change.impactLevel,
+        simpleSummary: change.simpleSummary,
+        metaImpact: change.metaImpact,
+      })),
     }),
   ];
 }
@@ -128,6 +162,25 @@ export async function fetchPatchAnalysis(
       if (fallback.patchId === patchId) {
         return fallback;
       }
+    }
+
+    throw error;
+  }
+}
+
+export async function fetchMetaTimeline(): Promise<MetaTimelinePatch[]> {
+  try {
+    const response = await fetch("/api/meta-timeline");
+    const payload: unknown = await response.json();
+
+    if (!response.ok) {
+      throw new Error("Meta timeline request failed.");
+    }
+
+    return metaTimelineResponseSchema.parse(payload).data;
+  } catch (error) {
+    if (isDevelopment) {
+      return getDevFallbackMetaTimeline();
     }
 
     throw error;

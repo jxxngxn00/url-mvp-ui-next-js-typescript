@@ -1,5 +1,6 @@
 # dependencies
 node_modules/
+.pnpm-store/
 
 # next
 .next/
@@ -32,3 +33,6 @@ Thumbs.db
 
 #portfolio
 /outputs
+
+# Sentry Config File
+.env.sentry-build-plugin

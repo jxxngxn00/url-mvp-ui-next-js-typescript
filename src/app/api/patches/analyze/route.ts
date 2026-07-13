@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/nextjs";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import {
@@ -45,6 +46,8 @@ export async function POST(request: Request) {
     return NextResponse.json(response);
   } catch (error) {
     if (error instanceof PatchAnalysisJsonValidationError) {
+      captureAnalyzeError(error, "INVALID_ANALYSIS_JSON");
+
       return errorResponse(
         "INVALID_ANALYSIS_JSON",
         error.message,
@@ -54,6 +57,8 @@ export async function POST(request: Request) {
     }
 
     if (error instanceof PatchAnalysisSaveError) {
+      captureAnalyzeError(error, "ANALYSIS_SAVE_FAILED");
+
       return errorResponse(
         "ANALYSIS_SAVE_FAILED",
         error.message,
@@ -63,8 +68,12 @@ export async function POST(request: Request) {
     }
 
     if (error instanceof PatchAnalysisLlmError) {
+      captureAnalyzeError(error, "LLM_ANALYSIS_FAILED");
+
       return errorResponse("LLM_ANALYSIS_FAILED", error.message, 500);
     }
+
+    captureAnalyzeError(error, "LLM_ANALYSIS_FAILED");
 
     return errorResponse(
       "LLM_ANALYSIS_FAILED",
@@ -97,6 +106,13 @@ function errorResponse(
   });
 
   return NextResponse.json(response, { status });
+}
+
+function captureAnalyzeError(error: unknown, code: PatchAnalyzeErrorCode) {
+  Sentry.withScope((scope) => {
+    scope.setTag("patch_analyze_error_code", code);
+    Sentry.captureException(error);
+  });
 }
 
 function formatZodIssues(error: z.ZodError) {

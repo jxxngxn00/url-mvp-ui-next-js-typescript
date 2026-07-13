@@ -9,6 +9,7 @@ import {
   Typography,
 } from "@mui/joy";
 import styles from "@/app/page.module.css";
+import { InlineStateCard } from "@/features/patch-analysis/components";
 import {
   changeTypeColor,
   changeTypeLabel,
@@ -40,11 +41,12 @@ function HeroHeader({ hero }: { hero: HeroDetail }) {
     <Card className={styles.heroDetailHeroPanel} variant="outlined">
       <Stack
         alignItems="flex-start"
+        className={styles.heroDetailHeader}
         direction={{ sm: "row" }}
         justifyContent="space-between"
         spacing={2}
       >
-        <Stack alignItems="center" direction="row" spacing={1.5}>
+        <Stack alignItems="center" direction="row" minWidth={0} spacing={1.5}>
           <Box className={styles.heroDetailAvatar}>
             {hero.imageUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -53,7 +55,7 @@ function HeroHeader({ hero }: { hero: HeroDetail }) {
               hero.nameKo.slice(0, 1)
             )}
           </Box>
-          <Box>
+          <Box className={styles.heroTitleBlock} minWidth={0}>
             <Typography component="h1" level="h1">
               {hero.nameKo}
             </Typography>
@@ -130,9 +132,10 @@ function HeroChangeHistory({ changes }: { changes: HeroDetailChange[] }) {
   return (
     <Stack className={styles.cardList} component="section" id="changes">
       {changes.length === 0 ? (
-        <Card variant="outlined">
-          <Typography level="title-md">아직 기록된 변경사항이 없습니다.</Typography>
-        </Card>
+        <InlineStateCard
+          description="이 영웅이 포함된 패치 분석이 저장되면 변경 이력이 표시됩니다."
+          title="아직 기록된 변경사항이 없습니다."
+        />
       ) : (
         changes.map((change) => (
           <HeroDetailChangeCard change={change} key={change.changeId} />
@@ -147,11 +150,12 @@ function HeroDetailChangeCard({ change }: { change: HeroDetailChange }) {
     <Card className={styles.heroCard} variant="outlined">
       <Stack
         alignItems="flex-start"
+        className={styles.heroCardHeader}
         direction={{ sm: "row" }}
         justifyContent="space-between"
         spacing={1.5}
       >
-        <Box>
+        <Box className={styles.heroTitleBlock}>
           <Typography level="title-lg">{change.patchTitle}</Typography>
           <Typography
             component="time"
@@ -162,7 +166,7 @@ function HeroDetailChangeCard({ change }: { change: HeroDetailChange }) {
             {change.patchDate}
           </Typography>
         </Box>
-        <Stack direction="row" flexWrap="wrap" gap={0.75}>
+        <Stack className={styles.chipRow} direction="row" flexWrap="wrap" gap={0.75}>
           <Chip color={changeTypeColor[change.changeType]} size="sm" variant="soft">
             {changeTypeLabel[change.changeType]}
           </Chip>

@@ -1,6 +1,6 @@
 "use client";
 
-import { Box } from "@mui/joy";
+import { Box, Button } from "@mui/joy";
 import { useParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -18,7 +18,7 @@ export default function HeroDetailPage() {
   const params = useParams<{ heroId: string }>();
   const heroId = params.heroId;
 
-  const { data, isError, isLoading } = useQuery({
+  const { data, isError, isLoading, refetch } = useQuery({
     queryKey: ["hero-detail", heroId],
     queryFn: () => fetchHeroDetail(heroId),
   });
@@ -26,6 +26,17 @@ export default function HeroDetailPage() {
   if (isError) {
     return (
       <StateCard
+        action={
+          <Button
+            onClick={() => {
+              void refetch();
+            }}
+            size="sm"
+            variant="soft"
+          >
+            다시 시도
+          </Button>
+        }
         description="영웅 ID를 확인하거나 잠시 후 다시 시도해 주세요."
         title="영웅 정보를 불러오지 못했습니다."
       />

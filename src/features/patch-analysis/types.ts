@@ -5,6 +5,8 @@ import type {
   heroInfoSchema,
   heroRoleSchema,
   impactLevelSchema,
+  metaTimelineEntrySchema,
+  metaTimelinePatchSchema,
   patchAnalysisInputSchema,
   patchAnalysisSchema,
   patchSummarySchema,
@@ -18,3 +20,5 @@ export type HeroChange = z.infer<typeof heroChangeSchema>;
 export type PatchAnalysisInput = z.infer<typeof patchAnalysisInputSchema>;
 export type PatchAnalysis = z.infer<typeof patchAnalysisSchema>;
 export type PatchSummary = z.infer<typeof patchSummarySchema>;
+export type MetaTimelineEntry = z.infer<typeof metaTimelineEntrySchema>;
+export type MetaTimelinePatch = z.infer<typeof metaTimelinePatchSchema>;

@@ -61,3 +61,24 @@ export const patchSummarySchema = patchAnalysisSchema
     changeCount: z.number().int().nonnegative(),
     highImpactChangeCount: z.number().int().nonnegative(),
   });
+
+export const metaTimelineEntrySchema = z.object({
+  timelineId: z.string().min(1),
+  patchId: z.string().min(1),
+  patchTitle: z.string().min(1),
+  patchDate: z.iso.date(),
+  hero: heroInfoSchema,
+  changeType: changeTypeSchema,
+  impactLevel: impactLevelSchema,
+  simpleSummary: z.string().min(1),
+  metaImpact: z.string().min(1),
+});
+
+export const metaTimelinePatchSchema = z.object({
+  patchId: z.string().min(1),
+  patchTitle: z.string().min(1),
+  patchDate: z.iso.date(),
+  metaSummary: z.string().min(1),
+  highImpactChangeCount: z.number().int().nonnegative(),
+  entries: z.array(metaTimelineEntrySchema),
+});
