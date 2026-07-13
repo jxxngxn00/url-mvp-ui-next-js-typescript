@@ -87,7 +87,7 @@ export function buildPatchAnalysisPrompt(input: PatchAnalysisInput) {
   return [
     "다음 오버워치 패치노트 원문을 영웅별 플레이 영향 분석 JSON으로 변환하세요.",
     "반드시 제공된 patchId, patchTitle, patchDate, sourceUrl 값을 그대로 사용하세요.",
-    "heroId는 영어 소문자 kebab/camel 없는 canonical id로 작성하세요. 예: reinhardt, sojourn, ana.",
+    "heroId는 영어 영웅명의 canonical id로 작성하세요. 예: reinhardt, sojourn, ana.",
     "changeId는 patchId와 heroId를 기반으로 안정적으로 생성하세요.",
     "한국어 사용자를 위한 요약과 플레이 조언을 작성하세요.",
     "",

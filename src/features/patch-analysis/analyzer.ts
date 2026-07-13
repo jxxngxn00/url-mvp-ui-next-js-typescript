@@ -5,28 +5,23 @@ import {
 import { buildPatchAnalysisPrompt, patchAnalysisJsonSchema } from "./prompt";
 import type { PatchAnalysis, PatchAnalysisInput } from "./types";
 
-const OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses";
-const DEFAULT_OPENAI_MODEL = "gpt-4.1-mini";
+const GEMINI_API_BASE_URL = "https://generativelanguage.googleapis.com/v1beta";
+const DEFAULT_GEMINI_MODEL = "gemini-3.1-flash-lite";
 
-const openAiResponseSchema = {
-  text: {
-    format: {
-      type: "json_schema",
-      name: "patch_analysis",
-      strict: true,
-      schema: patchAnalysisJsonSchema,
-    },
-  },
-} as const;
-
-type OpenAIResponseOutput = {
-  output_text?: string;
-  output?: Array<{
-    content?: Array<{
-      text?: string;
-      type?: string;
-    }>;
+type GeminiGenerateContentResponse = {
+  candidates?: Array<{
+    content?: {
+      parts?: Array<{
+        text?: string;
+      }>;
+    };
   }>;
+};
+
+type GeminiErrorResponse = {
+  error?: {
+    message?: string;
+  };
 };
 
 export class PatchAnalysisLlmError extends Error {
@@ -42,32 +37,37 @@ export class PatchAnalysisLlmError extends Error {
 export async function analyzePatchWithLlm(
   input: PatchAnalysisInput,
 ): Promise<PatchAnalysis> {
-  const apiKey = process.env.OPENAI_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY;
 
   if (!apiKey) {
-    throw new PatchAnalysisLlmError("OPENAI_API_KEY is not configured.");
+    throw new PatchAnalysisLlmError("GEMINI_API_KEY is not configured.");
   }
 
-  const response = await fetch(OPENAI_RESPONSES_URL, {
+  const model = process.env.GEMINI_MODEL ?? DEFAULT_GEMINI_MODEL;
+  const response = await fetch(`${GEMINI_API_BASE_URL}/models/${model}:generateContent`, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${apiKey}`,
+      "x-goog-api-key": apiKey,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: process.env.OPENAI_MODEL ?? DEFAULT_OPENAI_MODEL,
-      input: [
-        {
-          role: "system",
-          content:
-            "You convert Overwatch patch notes into strict structured JSON for a Korean MVP analytics app.",
-        },
+      systemInstruction: {
+        parts: [
+          {
+            text: "You convert Overwatch patch notes into strict structured JSON for a Korean MVP analytics app.",
+          },
+        ],
+      },
+      contents: [
         {
           role: "user",
-          content: buildPatchAnalysisPrompt(input),
+          parts: [{ text: buildPatchAnalysisPrompt(input) }],
         },
       ],
-      ...openAiResponseSchema,
+      generationConfig: {
+        responseMimeType: "application/json",
+        responseJsonSchema: patchAnalysisJsonSchema,
+      },
     }),
   });
 
@@ -75,7 +75,7 @@ export async function analyzePatchWithLlm(
 
   if (!response.ok) {
     throw new PatchAnalysisLlmError(
-      getOpenAIErrorMessage(payload),
+      getGeminiErrorMessage(payload),
       response.status,
     );
   }
@@ -87,40 +87,30 @@ export async function analyzePatchWithLlm(
       throw error;
     }
 
-    throw new PatchAnalysisLlmError("Failed to parse OpenAI response.");
+    throw new PatchAnalysisLlmError("Failed to parse Gemini response.");
   }
 }
 
 function extractResponseText(payload: unknown) {
-  const response = payload as OpenAIResponseOutput;
+  const response = payload as GeminiGenerateContentResponse;
 
-  if (typeof response.output_text === "string") {
-    return response.output_text;
-  }
-
-  const text = response.output
-    ?.flatMap((item) => item.content ?? [])
-    .find((content) => typeof content.text === "string")?.text;
+  const text = response.candidates?.[0]?.content?.parts
+    ?.map((part) => part.text)
+    .find((partText) => typeof partText === "string");
 
   if (!text) {
-    throw new PatchAnalysisLlmError("OpenAI response did not include text.");
+    throw new PatchAnalysisLlmError("Gemini response did not include text.");
   }
 
   return text;
 }
 
-function getOpenAIErrorMessage(payload: unknown) {
-  if (
-    typeof payload === "object" &&
-    payload !== null &&
-    "error" in payload &&
-    typeof payload.error === "object" &&
-    payload.error !== null &&
-    "message" in payload.error &&
-    typeof payload.error.message === "string"
-  ) {
-    return payload.error.message;
+function getGeminiErrorMessage(payload: unknown) {
+  const response = payload as GeminiErrorResponse;
+
+  if (typeof response.error?.message === "string") {
+    return response.error.message;
   }
 
-  return "OpenAI request failed.";
+  return "Gemini request failed.";
 }
