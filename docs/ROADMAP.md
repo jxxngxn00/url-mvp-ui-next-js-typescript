@@ -43,7 +43,7 @@
 ## Phase 5: Expansion
 
 - Build hero detail analysis page.
-- Build meta timeline.
+- Build meta timeline. See `docs/BACKLOG.md`.
 - Build search.
 - Improve prompt quality.
 - Add error monitoring and production checks.
