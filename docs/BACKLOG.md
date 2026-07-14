@@ -2,9 +2,9 @@
 
 ## Phase 7: Meta Timeline
 
-Status: Todo
+Status: Done
 
-Phase 7 search work is partially covered by the current hero keyword filter. The remaining work is the meta timeline experience.
+Phase 7 search work is partially covered by the current hero keyword filter. The meta timeline experience was implemented as part of the Phase 9 stability pass so it can reuse shared state UI and mobile polish patterns.
 
 ### Scope
 
@@ -22,4 +22,5 @@ Phase 7 search work is partially covered by the current hero keyword filter. The
 
 ### Notes
 
-- This should be implemented after the Phase 9 stability pass so the timeline can reuse shared state UI and mobile polish patterns.
+- Implemented with existing patch analysis data and `/api/meta-timeline`.
+- Future improvements can revisit the visual treatment without changing the current API contract.

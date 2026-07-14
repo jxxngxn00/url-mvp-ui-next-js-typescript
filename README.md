@@ -6,9 +6,9 @@ The MVP focuses on entering or collecting patch note URLs, extracting structured
 
 ## Project Status
 
-Planning phase.
+MVP implementation is in the stabilization phase.
 
-Development is intentionally deferred until the product scope, data model, and screen structure are clear.
+The app currently includes patch analysis data persistence, Gemini-based analysis, hero detail pages, meta timeline, Sentry setup, and shared loading, error, and empty states. The next focus is test coverage, refactoring, and deployment readiness.
 
 ## MVP Scope
 
@@ -17,9 +17,12 @@ Development is intentionally deferred until the product scope, data model, and s
 - Hero change cards
 - Role and hero filters
 - Hero detail analysis
+- Meta timeline
+- LLM analysis endpoint
+- Sentry error monitoring
 - Mobile-first responsive UI
 
-## Planned Stack
+## Stack
 
 - Next.js
 - TypeScript
@@ -28,8 +31,24 @@ Development is intentionally deferred until the product scope, data model, and s
 - Joy UI
 - Prisma
 - PostgreSQL
-- LLM API
+- Gemini API
 - Sentry
+
+## Quality Checks
+
+Use the fast local check while editing:
+
+```bash
+pnpm check
+```
+
+Run the full deployment verification before shipping:
+
+```bash
+pnpm verify
+```
+
+`pnpm verify` regenerates the Prisma client, runs lint, typecheck, tests, and then creates a production build. When Sentry environment variables are configured, the production build also uploads release artifacts and source maps to Sentry.
 
 ## Documentation
 
@@ -38,4 +57,5 @@ Development is intentionally deferred until the product scope, data model, and s
 - [Data Model](./docs/DATA_MODEL.md)
 - [UI Structure](./docs/UI_STRUCTURE.md)
 - [Roadmap](./docs/ROADMAP.md)
+- [Deployment Checklist](./docs/DEPLOYMENT_CHECKLIST.md)
 
