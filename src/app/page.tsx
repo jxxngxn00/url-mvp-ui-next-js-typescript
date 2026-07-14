@@ -21,6 +21,11 @@ import {
   fetchPatchList,
 } from "@/features/patch-analysis/api";
 import { DEFAULT_PATCH_ID } from "@/features/patch-analysis/constants";
+import {
+  filterHeroChanges,
+  filterMetaTimeline,
+  type PatchChangeFilters,
+} from "@/features/patch-analysis/filters";
 import type {
   ChangeType,
   HeroRole,
@@ -70,66 +75,27 @@ export default function Home() {
     queryFn: () => fetchPatchAnalysis(selectedPatchId),
   });
 
+  const selectedFilters = useMemo<PatchChangeFilters>(
+    () => ({
+      role: selectedRole,
+      changeType: selectedChangeType,
+      impactLevel: selectedImpactLevel,
+      keyword,
+    }),
+    [keyword, selectedChangeType, selectedImpactLevel, selectedRole],
+  );
+
   const filteredChanges = useMemo(() => {
     if (!data) {
       return [];
     }
 
-    const normalizedKeyword = keyword.trim().toLowerCase();
-
-    return data.changes.filter((change) => {
-      const matchesRole =
-        selectedRole === "ALL" || change.hero.role === selectedRole;
-      const matchesChangeType =
-        selectedChangeType === "ALL" ||
-        change.changeType === selectedChangeType;
-      const matchesImpactLevel =
-        selectedImpactLevel === "ALL" ||
-        change.impactLevel === selectedImpactLevel;
-      const matchesKeyword =
-        normalizedKeyword.length === 0 ||
-        change.hero.nameKo.includes(normalizedKeyword) ||
-        change.hero.nameEn.toLowerCase().includes(normalizedKeyword);
-
-      return (
-        matchesRole &&
-        matchesChangeType &&
-        matchesImpactLevel &&
-        matchesKeyword
-      );
-    });
-  }, [data, keyword, selectedChangeType, selectedImpactLevel, selectedRole]);
+    return filterHeroChanges(data.changes, selectedFilters);
+  }, [data, selectedFilters]);
 
   const filteredTimeline = useMemo(() => {
-    const normalizedKeyword = keyword.trim().toLowerCase();
-
-    return timeline
-      .map((patch) => ({
-        ...patch,
-        entries: patch.entries.filter((entry) => {
-          const matchesRole =
-            selectedRole === "ALL" || entry.hero.role === selectedRole;
-          const matchesChangeType =
-            selectedChangeType === "ALL" ||
-            entry.changeType === selectedChangeType;
-          const matchesImpactLevel =
-            selectedImpactLevel === "ALL" ||
-            entry.impactLevel === selectedImpactLevel;
-          const matchesKeyword =
-            normalizedKeyword.length === 0 ||
-            entry.hero.nameKo.includes(normalizedKeyword) ||
-            entry.hero.nameEn.toLowerCase().includes(normalizedKeyword);
-
-          return (
-            matchesRole &&
-            matchesChangeType &&
-            matchesImpactLevel &&
-            matchesKeyword
-          );
-        }),
-      }))
-      .filter((patch) => patch.entries.length > 0);
-  }, [keyword, selectedChangeType, selectedImpactLevel, selectedRole, timeline]);
+    return filterMetaTimeline(timeline, selectedFilters);
+  }, [selectedFilters, timeline]);
 
   if (isError || isPatchListError || isTimelineError) {
     return (
