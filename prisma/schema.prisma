@@ -26,36 +26,68 @@ enum ImpactLevel {
   HIGH
 }
 
-model Hero {
-  id        String   @id @default(cuid())
-  heroId    String   @unique @map("hero_id")
-  nameKo    String   @map("name_ko")
-  nameEn    String   @map("name_en")
-  role      HeroRole
-  difficulty Int?
-  imageUrl  String?  @map("image_url")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+enum PatchImportStatus {
+  IMPORTED
+  PARSED
+  REVIEWING
+  APPLIED
+  FAILED
+}
 
-  changes        HeroChange[]  @relation("ChangedHero")
-  synergyTargets HeroSynergy[] @relation("SynergyTarget")
-  counterTargets HeroCounter[] @relation("CounterTarget")
+enum PatchStagingStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  APPLIED
+  FAILED
+}
+
+enum PatchApplyAction {
+  IMPORT
+  PARSE
+  APPROVE
+  REJECT
+  APPLY
+  RETRY
+}
+
+enum PatchApplyStatus {
+  SUCCESS
+  FAILED
+}
+
+model Hero {
+  id         String   @id @default(cuid())
+  heroId     String   @unique @map("hero_id")
+  nameKo     String   @map("name_ko")
+  nameEn     String   @map("name_en")
+  role       HeroRole
+  difficulty Int?
+  imageUrl   String?  @map("image_url")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  changes                HeroChange[]           @relation("ChangedHero")
+  synergyTargets         HeroSynergy[]          @relation("SynergyTarget")
+  counterTargets         HeroCounter[]          @relation("CounterTarget")
+  stagedChanges          PatchChangeStaging[]   @relation("StagedHero")
+  stagingRelationTargets PatchStagingRelation[] @relation("StagingRelationTarget")
 
   @@index([role])
   @@map("heroes")
 }
 
 model PatchNote {
-  id             String       @id @default(cuid())
-  patchId        String       @unique @map("patch_id")
+  id             String   @id @default(cuid())
+  patchId        String   @unique @map("patch_id")
   title          String
-  patchDate      DateTime     @map("patch_date") @db.Date
-  sourceUrl      String       @map("source_url")
-  rawContent     String?      @map("raw_content")
-  overallSummary String       @map("overall_summary")
-  metaSummary    String       @map("meta_summary")
-  createdAt      DateTime     @default(now()) @map("created_at")
-  updatedAt      DateTime     @updatedAt @map("updated_at")
+  patchDate      DateTime @map("patch_date") @db.Date
+  sourceUrl      String   @map("source_url")
+  rawContent     String?  @map("raw_content")
+  overallSummary String   @map("overall_summary")
+  metaSummary    String   @map("meta_summary")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
 
   changes HeroChange[]
 
@@ -80,9 +112,10 @@ model HeroChange {
   patchNote PatchNote @relation(fields: [patchNoteId], references: [id], onDelete: Cascade)
   hero      Hero      @relation("ChangedHero", fields: [heroId], references: [id], onDelete: Restrict)
 
-  affectedTiers AffectedTier[]
-  synergies     HeroSynergy[]
-  counters      HeroCounter[]
+  affectedTiers  AffectedTier[]
+  synergies      HeroSynergy[]
+  counters       HeroCounter[]
+  stagingSources PatchChangeStaging[]
 
   @@index([patchNoteId])
   @@index([heroId])
@@ -129,4 +162,101 @@ model HeroCounter {
   @@unique([heroChangeId, targetHeroId])
   @@index([targetHeroId])
   @@map("hero_counters")
+}
+
+model PatchImport {
+  id           String            @id @default(cuid())
+  sourceUrl    String            @unique @map("source_url")
+  title        String?
+  patchDate    DateTime?         @map("patch_date") @db.Date
+  rawHtml      String?           @map("raw_html")
+  rawText      String?           @map("raw_text")
+  contentHash  String?           @unique @map("content_hash")
+  status       PatchImportStatus @default(IMPORTED)
+  errorMessage String?           @map("error_message")
+  importedAt   DateTime          @default(now()) @map("imported_at")
+  parsedAt     DateTime?         @map("parsed_at")
+  appliedAt    DateTime?         @map("applied_at")
+  createdAt    DateTime          @default(now()) @map("created_at")
+  updatedAt    DateTime          @updatedAt @map("updated_at")
+
+  stagedChanges PatchChangeStaging[]
+  applyLogs     PatchApplyLog[]
+
+  @@index([status])
+  @@index([patchDate])
+  @@index([contentHash])
+  @@map("patch_imports")
+}
+
+model PatchChangeStaging {
+  id                   String             @id @default(cuid())
+  patchImportId        String             @map("patch_import_id")
+  heroId               String?            @map("hero_id")
+  heroNameRaw          String             @map("hero_name_raw")
+  abilityName          String?            @map("ability_name")
+  changeType           ChangeType?        @map("change_type")
+  impactLevel          ImpactLevel?       @map("impact_level")
+  originalChange       String             @map("original_change")
+  simpleSummary        String?            @map("simple_summary")
+  metaImpact           String?            @map("meta_impact")
+  recommendedPlaystyle String?            @map("recommended_playstyle")
+  parsedPayload        Json               @default("{}") @map("parsed_payload")
+  confidence           Decimal            @default(0) @db.Decimal(4, 3)
+  status               PatchStagingStatus @default(PENDING)
+  reviewerNote         String?            @map("reviewer_note")
+  reviewedAt           DateTime?          @map("reviewed_at")
+  appliedHeroChangeId  String?            @map("applied_hero_change_id")
+  createdAt            DateTime           @default(now()) @map("created_at")
+  updatedAt            DateTime           @updatedAt @map("updated_at")
+
+  patchImport       PatchImport            @relation(fields: [patchImportId], references: [id], onDelete: Cascade)
+  hero              Hero?                  @relation("StagedHero", fields: [heroId], references: [id], onDelete: Restrict)
+  appliedHeroChange HeroChange?            @relation(fields: [appliedHeroChangeId], references: [id], onDelete: SetNull)
+  relations         PatchStagingRelation[]
+  applyLogs         PatchApplyLog[]
+
+  @@index([patchImportId])
+  @@index([heroId])
+  @@index([status])
+  @@index([changeType])
+  @@map("patch_change_staging")
+}
+
+model PatchStagingRelation {
+  id              String   @id @default(cuid())
+  stagingChangeId String   @map("staging_change_id")
+  relationType    String   @map("relation_type")
+  value           String?
+  targetHeroId    String?  @map("target_hero_id")
+  reason          String?
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  stagingChange PatchChangeStaging @relation(fields: [stagingChangeId], references: [id], onDelete: Cascade)
+  targetHero    Hero?              @relation("StagingRelationTarget", fields: [targetHeroId], references: [id], onDelete: Restrict)
+
+  @@index([stagingChangeId])
+  @@index([targetHeroId])
+  @@index([relationType])
+  @@map("patch_staging_relations")
+}
+
+model PatchApplyLog {
+  id              String           @id @default(cuid())
+  patchImportId   String?          @map("patch_import_id")
+  stagingChangeId String?          @map("staging_change_id")
+  action          PatchApplyAction
+  status          PatchApplyStatus
+  message         String?
+  metadata        Json             @default("{}")
+  createdAt       DateTime         @default(now()) @map("created_at")
+
+  patchImport   PatchImport?        @relation(fields: [patchImportId], references: [id], onDelete: SetNull)
+  stagingChange PatchChangeStaging? @relation(fields: [stagingChangeId], references: [id], onDelete: SetNull)
+
+  @@index([patchImportId])
+  @@index([stagingChangeId])
+  @@index([action])
+  @@index([status])
+  @@map("patch_apply_logs")
 }
