@@ -28,6 +28,7 @@ pnpm-debug.log*
 # misc
 .DS_Store
 Thumbs.db
+tsconfig.tsbuildinfo
 
 /src/generated/prisma
 

@@ -8,6 +8,10 @@ import type {
   patchImportResponseSchema,
   patchImportSchema,
   patchImportStatusSchema,
+  patchParseErrorCodeSchema,
+  patchParseErrorResponseSchema,
+  patchParseRequestSchema,
+  patchParseResponseSchema,
   patchStagingStatusSchema,
 } from "./schema";
 
@@ -23,4 +27,10 @@ export type PatchImportErrorCode = z.infer<
 >;
 export type PatchImportErrorResponse = z.infer<
   typeof patchImportErrorResponseSchema
+>;
+export type PatchParseRequest = z.infer<typeof patchParseRequestSchema>;
+export type PatchParseResponse = z.infer<typeof patchParseResponseSchema>;
+export type PatchParseErrorCode = z.infer<typeof patchParseErrorCodeSchema>;
+export type PatchParseErrorResponse = z.infer<
+  typeof patchParseErrorResponseSchema
 >;
