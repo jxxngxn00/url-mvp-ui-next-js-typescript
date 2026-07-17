@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ImportedPatchContent } from "./importer";
 import {
+  recordPatchParseSuccess,
   saveFailedPatchImport,
   saveImportedPatchContent,
 } from "./repository";
@@ -9,6 +10,7 @@ const mockPrisma = vi.hoisted(() => ({
   patchImport: {
     findUnique: vi.fn(),
     create: vi.fn(),
+    update: vi.fn(),
     upsert: vi.fn(),
   },
 }));
@@ -149,6 +151,46 @@ describe("patch update repository", () => {
         errorMessage: "Patch note request failed with status 502.",
       }),
     });
+  });
+
+  it("parse와 staging 저장 성공은 REVIEWING 상태와 성공 로그를 저장한다", async () => {
+    mockPrisma.patchImport.update.mockResolvedValueOnce(
+      createPatchImportRecord({
+        status: "REVIEWING",
+      }),
+    );
+
+    const result = await recordPatchParseSuccess({
+      patchImportId: "patch_import_1",
+      sourceUrl: "https://overwatch.blizzard.com/en-us/news/patch-notes/",
+      parsedChangeCount: 2,
+      stagingChangeCount: 2,
+    });
+
+    expect(mockPrisma.patchImport.update).toHaveBeenCalledWith({
+      where: {
+        id: "patch_import_1",
+      },
+      data: expect.objectContaining({
+        status: "REVIEWING",
+        errorMessage: null,
+        applyLogs: {
+          create: {
+            action: "PARSE",
+            status: "SUCCESS",
+            message: "Patch note parser completed and staging rows were saved.",
+            metadata: {
+              stage: "staging",
+              sourceUrl:
+                "https://overwatch.blizzard.com/en-us/news/patch-notes/",
+              parsedChangeCount: 2,
+              stagingChangeCount: 2,
+            },
+          },
+        },
+      }),
+    });
+    expect(result.status).toBe("REVIEWING");
   });
 });
 
