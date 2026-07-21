@@ -10,6 +10,8 @@ export const patchImportStatusSchema = z.enum([
 
 export const patchStagingStatusSchema = z.enum([
   "PENDING",
+  "PENDING_REVIEW",
+  "NEEDS_MAPPING",
   "APPROVED",
   "REJECTED",
   "APPLIED",

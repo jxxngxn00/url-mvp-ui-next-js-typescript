@@ -19,6 +19,8 @@ do $$
 begin
   create type "PatchStagingStatus" as enum (
     'PENDING',
+    'PENDING_REVIEW',
+    'NEEDS_MAPPING',
     'APPROVED',
     'REJECTED',
     'APPLIED',

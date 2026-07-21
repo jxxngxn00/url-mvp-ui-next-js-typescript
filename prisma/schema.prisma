@@ -36,6 +36,8 @@ enum PatchImportStatus {
 
 enum PatchStagingStatus {
   PENDING
+  PENDING_REVIEW
+  NEEDS_MAPPING
   APPROVED
   REJECTED
   APPLIED

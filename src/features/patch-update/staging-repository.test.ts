@@ -65,7 +65,7 @@ describe("savePatchAnalysisToStaging", () => {
           heroNameRaw: "Cassidy",
           changeType: "BUFF",
           impactLevel: "MEDIUM",
-          originalChange: "Damage increased.",
+          originalChange: "Damage increased from 70 to 75.",
           simpleSummary: "Damage increased.",
           metaImpact: "Cassidy is stronger.",
           recommendedPlaystyle: "Take mid-range fights.",
@@ -76,6 +76,25 @@ describe("savePatchAnalysisToStaging", () => {
             sourceUrl: "https://overwatch.blizzard.com/en-us/news/patch-notes/",
             overallSummary: "Overall summary",
             metaSummary: "Meta summary",
+            numericExtraction: {
+              status: "EXACT",
+              reason: null,
+              numericTokens: ["70", "75"],
+            },
+            confidenceBreakdown: {
+              hero: 0.35,
+              changeType: 0.1,
+              impactLevel: 0.1,
+              originalChange: 0.15,
+              summaryFields: 0.15000000000000002,
+              relatedHeroes: 0.05,
+              numericExtraction: 0.1,
+            },
+            reviewDecision: {
+              status: "PENDING",
+              autoApplyCandidate: true,
+              reasons: [],
+            },
             change: expect.objectContaining({
               changeId: "change-1",
               hero: expect.objectContaining({
@@ -83,7 +102,7 @@ describe("savePatchAnalysisToStaging", () => {
               }),
             }),
           },
-          confidence: 0.9,
+          confidence: 1,
           status: "PENDING",
           relations: {
             create: [
@@ -162,7 +181,7 @@ describe("savePatchAnalysisToStaging", () => {
     });
   });
 
-  it("영웅 매칭에 실패해도 원문 이름을 보존하고 낮은 confidence로 저장한다", async () => {
+  it("영웅 매칭에 실패하면 원문 이름을 보존하고 NEEDS_MAPPING 상태로 저장한다", async () => {
     mockTx.hero.findMany.mockResolvedValueOnce([]);
     mockTx.patchChangeStaging.deleteMany.mockResolvedValueOnce({ count: 0 });
     mockTx.patchChangeStaging.create.mockResolvedValueOnce({ id: "staging_1" });
@@ -173,8 +192,107 @@ describe("savePatchAnalysisToStaging", () => {
       data: expect.objectContaining({
           heroId: null,
           heroNameRaw: "Cassidy",
-          confidence: 0.55,
+          confidence: 0.65,
+          status: "NEEDS_MAPPING",
+          reviewerNote:
+            '영웅 매칭 실패: parser가 추출한 "Cassidy" 값을 heroes 테이블과 연결해야 합니다. confidence 0.650로 자동 승인 기준보다 낮습니다.',
+          parsedPayload: expect.objectContaining({
+            reviewDecision: expect.objectContaining({
+              status: "NEEDS_MAPPING",
+              autoApplyCandidate: false,
+              reasons: expect.arrayContaining([
+                expect.stringContaining("영웅 매칭 실패"),
+              ]),
+            }),
+          }),
         }),
+    });
+  });
+
+  it("영웅은 매칭됐지만 confidence가 낮으면 PENDING_REVIEW 상태로 저장한다", async () => {
+    mockTx.hero.findMany.mockResolvedValueOnce([
+      {
+        id: "hero_cassidy",
+        heroId: "cassidy",
+        nameEn: "Cassidy",
+        nameKo: "캐서디",
+      },
+    ]);
+    mockTx.patchChangeStaging.deleteMany.mockResolvedValueOnce({ count: 0 });
+    mockTx.patchChangeStaging.create.mockResolvedValueOnce({ id: "staging_1" });
+
+    await savePatchAnalysisToStaging(
+      "patch_import_1",
+      createPatchAnalysis({
+        simpleSummary: "",
+        metaImpact: "",
+        recommendedPlaystyle: "",
+      }),
+    );
+
+    expect(mockTx.patchChangeStaging.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        heroId: "hero_cassidy",
+        confidence: 0.85,
+        status: "PENDING_REVIEW",
+        reviewerNote: "confidence 0.850로 자동 승인 기준보다 낮습니다.",
+        parsedPayload: expect.objectContaining({
+          reviewDecision: {
+            status: "PENDING_REVIEW",
+            autoApplyCandidate: false,
+            reasons: ["confidence 0.850로 자동 승인 기준보다 낮습니다."],
+          },
+        }),
+      }),
+    });
+  });
+
+  it("수치형 변경의 기존값과 변경값이 불명확하면 원문을 보존하고 confidence를 낮춘다", async () => {
+    mockTx.hero.findMany.mockResolvedValueOnce([
+      {
+        id: "hero_cassidy",
+        heroId: "cassidy",
+        nameEn: "Cassidy",
+        nameKo: "캐서디",
+      },
+    ]);
+    mockTx.patchChangeStaging.deleteMany.mockResolvedValueOnce({ count: 0 });
+    mockTx.patchChangeStaging.create.mockResolvedValueOnce({ id: "staging_1" });
+
+    await savePatchAnalysisToStaging(
+      "patch_import_1",
+      createPatchAnalysis({
+        originalChange: "Damage increased.",
+      }),
+    );
+
+    expect(mockTx.patchChangeStaging.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        heroId: "hero_cassidy",
+        originalChange: "Damage increased.",
+        confidence: 0.9,
+        status: "PENDING_REVIEW",
+        reviewerNote:
+          "수치 변경의 기존값/변경값이 명확하지 않아 원문 확인이 필요합니다.",
+        parsedPayload: expect.objectContaining({
+          numericExtraction: {
+            status: "UNCLEAR",
+            reason:
+              "수치 변경의 기존값/변경값이 명확하지 않아 원문 확인이 필요합니다.",
+            numericTokens: [],
+          },
+          reviewDecision: expect.objectContaining({
+            status: "PENDING_REVIEW",
+            autoApplyCandidate: false,
+            reasons: expect.arrayContaining([
+              "수치 변경의 기존값/변경값이 명확하지 않아 원문 확인이 필요합니다.",
+            ]),
+          }),
+          change: expect.objectContaining({
+            originalChange: "Damage increased.",
+          }),
+        }),
+      }),
     });
   });
 
@@ -236,6 +354,72 @@ describe("savePatchAnalysisToStaging", () => {
     });
   });
 
+  it("관련 영웅 일부가 매칭되지 않으면 confidence 세부 점수를 낮추고 PENDING_REVIEW로 저장한다", async () => {
+    mockTx.hero.findMany.mockResolvedValueOnce([
+      {
+        id: "hero_cassidy",
+        heroId: "cassidy",
+        nameEn: "Cassidy",
+        nameKo: "캐서디",
+      },
+      {
+        id: "hero_mercy",
+        heroId: "mercy",
+        nameEn: "Mercy",
+        nameKo: "메르시",
+      },
+    ]);
+    mockTx.patchChangeStaging.deleteMany.mockResolvedValueOnce({ count: 0 });
+    mockTx.patchChangeStaging.create.mockResolvedValueOnce({ id: "staging_1" });
+
+    await savePatchAnalysisToStaging(
+      "patch_import_1",
+      createPatchAnalysis({
+        synergyPicks: ["Mercy"],
+        counterPicks: ["Winston"],
+      }),
+    );
+
+    expect(mockTx.patchChangeStaging.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        confidence: 0.95,
+        status: "PENDING_REVIEW",
+        reviewerNote: "관련 영웅 매칭 실패: Winston 값을 확인해야 합니다.",
+        parsedPayload: expect.objectContaining({
+          confidenceBreakdown: expect.objectContaining({
+            relatedHeroes: 0,
+          }),
+          reviewDecision: expect.objectContaining({
+            status: "PENDING_REVIEW",
+            autoApplyCandidate: false,
+            reasons: expect.arrayContaining([
+              "관련 영웅 매칭 실패: Winston 값을 확인해야 합니다.",
+            ]),
+          }),
+        }),
+        relations: {
+          create: [
+            {
+              relationType: "AFFECTED_TIER",
+              value: "Gold",
+              targetHeroId: null,
+            },
+            {
+              relationType: "SYNERGY",
+              value: "Mercy",
+              targetHeroId: "hero_mercy",
+            },
+            {
+              relationType: "COUNTER",
+              value: "Winston",
+              targetHeroId: null,
+            },
+          ],
+        },
+      }),
+    });
+  });
+
   it("변경사항이 없으면 delete만 수행하고 createMany를 호출하지 않는다", async () => {
     mockTx.hero.findMany.mockResolvedValueOnce([]);
     mockTx.patchChangeStaging.deleteMany.mockResolvedValueOnce({ count: 0 });
@@ -273,7 +457,7 @@ function createPatchAnalysis(
         },
         changeType: "BUFF",
         impactLevel: "MEDIUM",
-        originalChange: "Damage increased.",
+        originalChange: "Damage increased from 70 to 75.",
         simpleSummary: "Damage increased.",
         metaImpact: "Cassidy is stronger.",
         affectedTiers: ["Gold"],

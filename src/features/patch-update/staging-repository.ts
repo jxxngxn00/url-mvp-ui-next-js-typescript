@@ -1,4 +1,5 @@
 import type { Prisma } from "@/generated/prisma/client";
+import type { PatchStagingStatus } from "@/generated/prisma/enums";
 import { prisma } from "@/lib/prisma";
 import type { PatchAnalysis } from "@/features/patch-analysis/types";
 
@@ -14,6 +15,37 @@ type HeroLookupRecord = {
 type HeroLookup = {
   byAlias: Map<string, HeroLookupRecord>;
 };
+
+type NumericExtractionReview = {
+  status: "EXACT" | "UNCLEAR" | "NOT_NUMERIC";
+  reason: string | null;
+  numericTokens: string[];
+};
+
+type RelationResolutionStatus = "NONE" | "ALL_RESOLVED" | "HAS_UNRESOLVED";
+
+type StagingConfidenceResult = {
+  score: number;
+  breakdown: {
+    hero: number;
+    changeType: number;
+    impactLevel: number;
+    originalChange: number;
+    summaryFields: number;
+    relatedHeroes: number;
+    numericExtraction: number;
+  };
+};
+
+type StagingReviewContext = {
+  heroNameRaw: string;
+  status: PatchStagingStatus;
+  reviewerNote: string | null;
+  autoApplyCandidate: boolean;
+  reviewReasons: string[];
+};
+
+const AUTO_APPLY_CONFIDENCE_THRESHOLD = 0.85;
 
 export type SavePatchAnalysisToStagingResult = {
   stagingChangeCount: number;
@@ -50,13 +82,33 @@ export async function savePatchAnalysisToStaging(
       for (const change of analysis.changes) {
         const hero = resolveHero(heroLookup, change.hero.heroId);
         const relationDrafts = buildStagingRelationDrafts(heroLookup, change);
+        const numericExtraction = reviewNumericExtraction(
+          change.originalChange,
+        );
+        const confidenceResult = calculateStagingConfidence({
+          heroResolved: Boolean(hero),
+          changeTypePresent: Boolean(change.changeType),
+          impactLevelPresent: Boolean(change.impactLevel),
+          originalChangePresent: Boolean(change.originalChange),
+          completedSummaryFieldCount: countCompletedSummaryFields(change),
+          relationResolutionStatus: relationDrafts.resolutionStatus,
+          numericExtractionStatus: numericExtraction.status,
+        });
+        const confidence = confidenceResult.score;
+        const reviewContext = buildStagingReviewContext({
+          heroResolved: Boolean(hero),
+          heroNameRaw:
+            change.hero.nameEn || change.hero.nameKo || change.hero.heroId,
+          confidence,
+          numericExtraction,
+          unresolvedRelatedHeroNames: relationDrafts.unresolvedRelatedHeroNames,
+        });
 
         await tx.patchChangeStaging.create({
           data: {
             patchImportId,
             heroId: hero?.id ?? null,
-            heroNameRaw:
-              change.hero.nameEn || change.hero.nameKo || change.hero.heroId,
+            heroNameRaw: reviewContext.heroNameRaw,
             changeType: change.changeType,
             impactLevel: change.impactLevel,
             originalChange: change.originalChange,
@@ -70,21 +122,18 @@ export async function savePatchAnalysisToStaging(
               sourceUrl: analysis.sourceUrl,
               overallSummary: analysis.overallSummary,
               metaSummary: analysis.metaSummary,
+              numericExtraction,
+              confidenceBreakdown: confidenceResult.breakdown,
+              reviewDecision: {
+                status: reviewContext.status,
+                autoApplyCandidate: reviewContext.autoApplyCandidate,
+                reasons: reviewContext.reviewReasons,
+              },
               change,
             },
-            confidence: calculateStagingConfidence({
-              heroResolved: Boolean(hero),
-              changeTypePresent: Boolean(change.changeType),
-              impactLevelPresent: Boolean(change.impactLevel),
-              originalChangePresent: Boolean(change.originalChange),
-              summaryFieldsPresent: Boolean(
-                change.simpleSummary &&
-                  change.metaImpact &&
-                  change.recommendedPlaystyle,
-              ),
-              relatedHeroesResolved: relationDrafts.relatedHeroesResolved,
-            }),
-            status: "PENDING",
+            confidence,
+            status: reviewContext.status,
+            reviewerNote: reviewContext.reviewerNote,
             relations:
               relationDrafts.relations.length > 0
                 ? {
@@ -149,6 +198,174 @@ function resolveHero(heroLookup: HeroLookup, heroRef: string) {
   return heroLookup.byAlias.get(normalizeHeroName(heroRef));
 }
 
+function buildStagingReviewContext({
+  heroResolved,
+  heroNameRaw,
+  confidence,
+  numericExtraction,
+  unresolvedRelatedHeroNames,
+}: {
+  heroResolved: boolean;
+  heroNameRaw: string;
+  confidence: number;
+  numericExtraction: NumericExtractionReview;
+  unresolvedRelatedHeroNames: string[];
+}): StagingReviewContext {
+  const reviewReasons = [
+    numericExtraction.reason,
+    unresolvedRelatedHeroNames.length > 0
+      ? `관련 영웅 매칭 실패: ${unresolvedRelatedHeroNames.join(", ")} 값을 확인해야 합니다.`
+      : null,
+    confidence <= AUTO_APPLY_CONFIDENCE_THRESHOLD
+      ? `confidence ${confidence.toFixed(3)}로 자동 승인 기준보다 낮습니다.`
+      : null,
+  ].filter((reason): reason is string => Boolean(reason));
+
+  if (!heroResolved) {
+    // 영웅 매칭 실패는 자동 적용 전에 관리자가 DB hero와 직접 연결해야 하는 상태로 분리한다.
+    return {
+      heroNameRaw,
+      status: "NEEDS_MAPPING",
+      reviewerNote: [
+        `영웅 매칭 실패: parser가 추출한 "${heroNameRaw}" 값을 heroes 테이블과 연결해야 합니다.`,
+        ...reviewReasons,
+      ].join(" "),
+      autoApplyCandidate: false,
+      reviewReasons: [
+        `영웅 매칭 실패: parser가 추출한 "${heroNameRaw}" 값을 heroes 테이블과 연결해야 합니다.`,
+        ...reviewReasons,
+      ],
+    };
+  }
+
+  if (confidence <= AUTO_APPLY_CONFIDENCE_THRESHOLD) {
+    return {
+      heroNameRaw,
+      status: "PENDING_REVIEW",
+      reviewerNote: reviewReasons.join(" "),
+      autoApplyCandidate: false,
+      reviewReasons,
+    };
+  }
+
+  if (
+    unresolvedRelatedHeroNames.length > 0 ||
+    numericExtraction.status === "UNCLEAR"
+  ) {
+    return {
+      heroNameRaw,
+      status: "PENDING_REVIEW",
+      reviewerNote: reviewReasons.join(" "),
+      autoApplyCandidate: false,
+      reviewReasons,
+    };
+  }
+
+  return {
+    heroNameRaw,
+    status: "PENDING",
+    reviewerNote: null,
+    autoApplyCandidate: true,
+    reviewReasons: [],
+  };
+}
+
+function reviewNumericExtraction(
+  originalChange: string,
+): NumericExtractionReview {
+  const numericTokens = originalChange.match(/\d+(?:\.\d+)?%?/g) ?? [];
+  const expectsNumericChange = hasNumericChangeContext(originalChange);
+
+  if (!expectsNumericChange) {
+    return {
+      status: "NOT_NUMERIC",
+      reason: null,
+      numericTokens,
+    };
+  }
+
+  if (hasBeforeAfterNumericPattern(originalChange)) {
+    return {
+      status: "EXACT",
+      reason: null,
+      numericTokens,
+    };
+  }
+
+  // 수치형 변경처럼 보이지만 기존값/변경값 한 쌍이 보이지 않으면 검수자가 원문을 확인해야 한다.
+  return {
+    status: "UNCLEAR",
+    reason:
+      "수치 변경의 기존값/변경값이 명확하지 않아 원문 확인이 필요합니다.",
+    numericTokens,
+  };
+}
+
+function hasBeforeAfterNumericPattern(originalChange: string) {
+  return [
+    /\bfrom\s+\d+(?:\.\d+)?%?\s+to\s+\d+(?:\.\d+)?%?\b/i,
+    /\b\d+(?:\.\d+)?%?\s*(?:->|→)\s*\d+(?:\.\d+)?%?\b/,
+    /\b\d+(?:\.\d+)?%?\s+to\s+\d+(?:\.\d+)?%?\b/i,
+    /\d+(?:\.\d+)?%?\s*에서\s*\d+(?:\.\d+)?%?\s*로/,
+  ].some((pattern) => pattern.test(originalChange));
+}
+
+function hasNumericChangeContext(originalChange: string) {
+  const numericKeywords = [
+    "damage",
+    "healing",
+    "cooldown",
+    "duration",
+    "range",
+    "radius",
+    "health",
+    "armor",
+    "shield",
+    "ammo",
+    "speed",
+    "cost",
+    "charge",
+    "spread",
+    "recoil",
+    "피해",
+    "대미지",
+    "회복",
+    "쿨다운",
+    "재사용",
+    "지속",
+    "범위",
+    "거리",
+    "반경",
+    "생명력",
+    "방어력",
+    "보호막",
+    "탄약",
+    "속도",
+    "충전",
+  ];
+  const changeKeywords = [
+    "increased",
+    "decreased",
+    "reduced",
+    "raised",
+    "lowered",
+    "changed",
+    "증가",
+    "감소",
+    "상향",
+    "하향",
+    "변경",
+    "줄",
+    "늘",
+  ];
+  const normalizedChange = originalChange.toLowerCase();
+
+  return (
+    numericKeywords.some((keyword) => normalizedChange.includes(keyword)) &&
+    changeKeywords.some((keyword) => normalizedChange.includes(keyword))
+  );
+}
+
 function buildStagingRelationDrafts(
   heroLookup: HeroLookup,
   change: PatchAnalysis["changes"][number],
@@ -169,6 +386,10 @@ function buildStagingRelationDrafts(
     targetHeroId: resolveHero(heroLookup, heroName)?.id ?? null,
   }));
   const relatedHeroRelations = [...synergyRelations, ...counterRelations];
+  const unresolvedRelatedHeroNames = relatedHeroRelations
+    .filter((relation) => !relation.targetHeroId)
+    .map((relation) => relation.value)
+    .filter((value): value is string => Boolean(value));
 
   return {
     relations: [
@@ -180,7 +401,23 @@ function buildStagingRelationDrafts(
     relatedHeroesResolved:
       relatedHeroRelations.length > 0 &&
       relatedHeroRelations.every((relation) => relation.targetHeroId),
+    resolutionStatus: getRelationResolutionStatus(relatedHeroRelations),
+    unresolvedRelatedHeroNames,
   };
+}
+
+function getRelationResolutionStatus(
+  relatedHeroRelations: Array<{
+    targetHeroId: string | null;
+  }>,
+): RelationResolutionStatus {
+  if (relatedHeroRelations.length === 0) {
+    return "NONE";
+  }
+
+  return relatedHeroRelations.every((relation) => relation.targetHeroId)
+    ? "ALL_RESOLVED"
+    : "HAS_UNRESOLVED";
 }
 
 function calculateStagingConfidence({
@@ -188,26 +425,60 @@ function calculateStagingConfidence({
   changeTypePresent,
   impactLevelPresent,
   originalChangePresent,
-  summaryFieldsPresent,
-  relatedHeroesResolved,
+  completedSummaryFieldCount,
+  relationResolutionStatus,
+  numericExtractionStatus,
 }: {
   heroResolved: boolean;
   changeTypePresent: boolean;
   impactLevelPresent: boolean;
   originalChangePresent: boolean;
-  summaryFieldsPresent: boolean;
-  relatedHeroesResolved: boolean;
-}) {
-  // Day1 매핑표의 MVP confidence 기준을 그대로 반영한다.
-  const score =
-    (heroResolved ? 0.35 : 0) +
-    (changeTypePresent ? 0.15 : 0) +
-    (impactLevelPresent ? 0.1 : 0) +
-    (originalChangePresent ? 0.15 : 0) +
-    (summaryFieldsPresent ? 0.15 : 0) +
-    (relatedHeroesResolved ? 0.1 : 0);
+  completedSummaryFieldCount: number;
+  relationResolutionStatus: RelationResolutionStatus;
+  numericExtractionStatus: NumericExtractionReview["status"];
+}): StagingConfidenceResult {
+  const breakdown = {
+    hero: heroResolved ? 0.35 : 0,
+    changeType: changeTypePresent ? 0.1 : 0,
+    impactLevel: impactLevelPresent ? 0.1 : 0,
+    originalChange: originalChangePresent ? 0.15 : 0,
+    summaryFields: Math.min(completedSummaryFieldCount, 3) * 0.05,
+    relatedHeroes: getRelatedHeroConfidence(relationResolutionStatus),
+    numericExtraction: getNumericExtractionConfidence(numericExtractionStatus),
+  };
+  const score = Object.values(breakdown).reduce((sum, value) => sum + value, 0);
 
-  return Math.min(score, 1);
+  // 각 항목별 점수 합산 결과를 0~1 사이로 고정해 DB confidence 제약 조건을 지킨다.
+  return {
+    score: Math.max(Math.min(score, 1), 0),
+    breakdown,
+  };
+}
+
+function countCompletedSummaryFields(change: PatchAnalysis["changes"][number]) {
+  return [
+    change.simpleSummary,
+    change.metaImpact,
+    change.recommendedPlaystyle,
+  ].filter((value) => value.trim().length > 0).length;
+}
+
+function getRelatedHeroConfidence(status: RelationResolutionStatus) {
+  if (status === "ALL_RESOLVED") {
+    return 0.1;
+  }
+
+  if (status === "NONE") {
+    return 0.05;
+  }
+
+  return 0;
+}
+
+function getNumericExtractionConfidence(
+  status: NumericExtractionReview["status"],
+) {
+  return status === "UNCLEAR" ? 0 : 0.1;
 }
 
 function normalizeHeroName(heroName: string) {
