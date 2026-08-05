@@ -3,9 +3,19 @@ import "./globals.css";
 import { Providers } from "./providers";
 
 export const metadata: Metadata = {
-  title: "PatchSignal",
+  applicationName: "PatchSignal",
+  title: {
+    default: "PatchSignal",
+    template: "%s | PatchSignal",
+  },
   description:
     "Structured Overwatch patch note analysis by hero and meta impact.",
+  openGraph: {
+    title: "PatchSignal",
+    description:
+      "Structured Overwatch patch note analysis by hero and meta impact.",
+    siteName: "PatchSignal",
+  },
 };
 
 export default function RootLayout({

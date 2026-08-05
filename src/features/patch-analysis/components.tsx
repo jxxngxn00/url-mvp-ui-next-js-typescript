@@ -47,9 +47,7 @@ export function Brand({
         <Image alt="Overwatch Logo" src={logo} />
       </Box>
       <Box>
-        <Typography level="title-sm">
-          {long ? "PatchSignal" : "PatchSignal"}
-        </Typography>
+        <Typography level="title-sm">PatchSignal</Typography>
         {long ? (
           <Typography level="body-xs" textColor="text.tertiary">
             Patch analysis MVP
