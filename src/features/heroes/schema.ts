@@ -18,6 +18,27 @@ export const heroSummarySchema = z.object({
   latestPatchDate: z.iso.date().nullable(),
 });
 
+export const heroAdminSchema = z.object({
+  id: z.string().min(1),
+  heroId: z.string().min(1),
+  nameKo: z.string().min(1),
+  nameEn: z.string().min(1),
+  role: heroRoleSchema,
+  difficulty: z.number().int().nonnegative().nullable(),
+  imageUrl: z.url().nullable(),
+  createdAt: z.iso.datetime(),
+  updatedAt: z.iso.datetime(),
+});
+
+export const heroAdminUpdateRequestSchema = z.object({
+  heroId: z.string().min(1).optional(),
+  nameKo: z.string().min(1).optional(),
+  nameEn: z.string().min(1).optional(),
+  role: heroRoleSchema.optional(),
+  difficulty: z.number().int().nonnegative().nullable().optional(),
+  imageUrl: z.url().nullable().optional(),
+});
+
 export const heroDetailChangeSchema = z.object({
   changeId: z.string().min(1),
   patchId: z.string().min(1),

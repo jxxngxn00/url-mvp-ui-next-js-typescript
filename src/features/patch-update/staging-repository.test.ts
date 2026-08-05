@@ -1,14 +1,21 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { PatchAnalysis } from "@/features/patch-analysis/types";
-import { savePatchAnalysisToStaging } from "./staging-repository";
+import {
+  PatchStagingHeroNotFoundError,
+  updatePatchStagingReview,
+  savePatchAnalysisToStaging,
+} from "./staging-repository";
 
 const mockTx = vi.hoisted(() => ({
   hero: {
     findMany: vi.fn(),
+    findUnique: vi.fn(),
   },
   patchChangeStaging: {
     deleteMany: vi.fn(),
     create: vi.fn(),
+    findFirst: vi.fn(),
+    update: vi.fn(),
   },
 }));
 
@@ -434,6 +441,111 @@ describe("savePatchAnalysisToStaging", () => {
       stagingChangeCount: 0,
     });
   });
+
+  it("검수자가 staging row를 승인하면 상태와 reviewedAt을 함께 저장한다", async () => {
+    mockTx.patchChangeStaging.findFirst.mockResolvedValueOnce(
+      createStagingChangeRecord(),
+    );
+    mockTx.patchChangeStaging.update.mockResolvedValueOnce({
+      ...createStagingChangeRecord({
+        status: "APPROVED",
+        reviewerNote: "원문 확인 완료",
+        reviewedAt: new Date("2026-07-14T02:00:00.000Z"),
+      }),
+      hero: createHeroRecord(),
+      relations: [],
+    });
+
+    const result = await updatePatchStagingReview(
+      "patch_import_1",
+      "staging_1",
+      {
+        status: "APPROVED",
+        reviewerNote: "원문 확인 완료",
+      },
+    );
+
+    expect(mockTx.patchChangeStaging.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: "staging_1",
+        patchImportId: "patch_import_1",
+      },
+    });
+    expect(mockTx.patchChangeStaging.update).toHaveBeenCalledWith({
+      where: {
+        id: "staging_1",
+      },
+      data: expect.objectContaining({
+        status: "APPROVED",
+        reviewerNote: "원문 확인 완료",
+        reviewedAt: expect.any(Date),
+      }),
+      include: {
+        hero: true,
+        relations: {
+          include: {
+            targetHero: true,
+          },
+        },
+      },
+    });
+    expect(result).toMatchObject({
+      id: "staging_1",
+      status: "APPROVED",
+      reviewerNote: "원문 확인 완료",
+    });
+  });
+
+  it("검수자가 공개 heroId로 매핑하면 내부 hero id로 저장한다", async () => {
+    mockTx.patchChangeStaging.findFirst.mockResolvedValueOnce(
+      createStagingChangeRecord({
+        heroId: null,
+        status: "NEEDS_MAPPING",
+      }),
+    );
+    mockTx.hero.findUnique.mockResolvedValueOnce(createHeroRecord());
+    mockTx.patchChangeStaging.update.mockResolvedValueOnce({
+      ...createStagingChangeRecord({
+        heroId: "hero_cassidy",
+        status: "PENDING_REVIEW",
+      }),
+      hero: createHeroRecord(),
+      relations: [],
+    });
+
+    await updatePatchStagingReview("patch_import_1", "staging_1", {
+      heroId: "cassidy",
+      status: "PENDING_REVIEW",
+    });
+
+    expect(mockTx.hero.findUnique).toHaveBeenCalledWith({
+      where: {
+        heroId: "cassidy",
+      },
+    });
+    expect(mockTx.patchChangeStaging.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          heroId: "hero_cassidy",
+          status: "PENDING_REVIEW",
+        }),
+      }),
+    );
+  });
+
+  it("없는 heroId로 검수 매핑을 시도하면 실패한다", async () => {
+    mockTx.patchChangeStaging.findFirst.mockResolvedValueOnce(
+      createStagingChangeRecord(),
+    );
+    mockTx.hero.findUnique.mockResolvedValueOnce(null);
+
+    await expect(
+      updatePatchStagingReview("patch_import_1", "staging_1", {
+        heroId: "unknown-hero",
+      }),
+    ).rejects.toBeInstanceOf(PatchStagingHeroNotFoundError);
+    expect(mockTx.patchChangeStaging.update).not.toHaveBeenCalled();
+  });
 });
 
 function createPatchAnalysis(
@@ -467,5 +579,58 @@ function createPatchAnalysis(
         ...changeOverrides,
       },
     ],
+  };
+}
+
+function createHeroRecord() {
+  return {
+    id: "hero_cassidy",
+    heroId: "cassidy",
+    nameKo: "캐서디",
+    nameEn: "Cassidy",
+    role: "DAMAGE",
+    difficulty: null,
+    imageUrl: null,
+    createdAt: new Date("2026-07-14T01:00:00.000Z"),
+    updatedAt: new Date("2026-07-14T01:00:00.000Z"),
+  };
+}
+
+function createStagingChangeRecord(
+  overrides: Partial<{
+    heroId: string | null;
+    status:
+      | "PENDING"
+      | "PENDING_REVIEW"
+      | "NEEDS_MAPPING"
+      | "APPROVED"
+      | "REJECTED"
+      | "APPLIED"
+      | "FAILED";
+    reviewerNote: string | null;
+    reviewedAt: Date | null;
+  }> = {},
+) {
+  return {
+    id: "staging_1",
+    patchImportId: "patch_import_1",
+    heroId: "hero_cassidy",
+    heroNameRaw: "Cassidy",
+    abilityName: null,
+    changeType: "BUFF",
+    impactLevel: "MEDIUM",
+    originalChange: "Damage increased from 70 to 75.",
+    simpleSummary: "Damage increased.",
+    metaImpact: "Cassidy is stronger.",
+    recommendedPlaystyle: "Take mid-range fights.",
+    parsedPayload: {},
+    confidence: 0.95,
+    status: "PENDING_REVIEW",
+    reviewerNote: null,
+    reviewedAt: null,
+    appliedHeroChangeId: null,
+    createdAt: new Date("2026-07-14T01:00:00.000Z"),
+    updatedAt: new Date("2026-07-14T01:00:00.000Z"),
+    ...overrides,
   };
 }

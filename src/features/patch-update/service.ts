@@ -6,6 +6,7 @@ import type {
 import {
   PatchFetchError,
   fetchOfficialPatchNote,
+  inferPatchDateFromText,
   normalizeOfficialPatchUrl,
 } from "./importer";
 import {
@@ -120,6 +121,8 @@ export async function parsePatchImport(
     const updatedPatchImport = await recordPatchParseSuccess({
       patchImportId: patchImport.id,
       sourceUrl: patchImport.sourceUrl,
+      parsedTitle: analysis.patchTitle,
+      parsedDate: analysis.patchDate,
       parsedChangeCount: analysis.changes.length,
       stagingChangeCount: stagingResult.stagingChangeCount,
     });
@@ -163,7 +166,7 @@ function assertPatchImportCanParse(
   patchImport: PatchImportForParsing,
   forceReparse: boolean,
 ) {
-  if (!patchImport.title || !patchImport.patchDate) {
+  if (!getPatchTitleForParser(patchImport) || !getPatchDateForParser(patchImport)) {
     throw new PatchImportNotReadyError(
       "Patch import requires title and patch date before parsing.",
     );
@@ -185,7 +188,10 @@ function assertPatchImportCanParse(
 function buildPatchAnalysisInput(
   patchImport: PatchImportForParsing,
 ): PatchAnalysisInput {
-  if (!patchImport.title || !patchImport.patchDate) {
+  const patchTitle = getPatchTitleForParser(patchImport);
+  const patchDate = getPatchDateForParser(patchImport);
+
+  if (!patchTitle || !patchDate) {
     throw new PatchImportNotReadyError(
       "Patch import requires title and patch date before parsing.",
     );
@@ -196,8 +202,8 @@ function buildPatchAnalysisInput(
 
   return {
     patchId: createPatchId(patchImport),
-    patchTitle: patchImport.title,
-    patchDate: patchImport.patchDate,
+    patchTitle,
+    patchDate,
     sourceUrl: patchImport.sourceUrl,
     rawContent,
   };
@@ -216,10 +222,30 @@ function getRawContentForParser(patchImport: PatchImportForParsing) {
 }
 
 function createPatchId(patchImport: PatchImportForParsing) {
-  const titleSlug = slugify(patchImport.title ?? "overwatch-patch-notes");
-  const dateSlug = patchImport.patchDate ?? "unknown-date";
+  const titleSlug = slugify(
+    getPatchTitleForParser(patchImport) ?? "overwatch-patch-notes",
+  );
+  const dateSlug = getPatchDateForParser(patchImport) ?? "unknown-date";
 
   return `ow2-${dateSlug}-${titleSlug}`;
+}
+
+function getPatchTitleForParser(patchImport: PatchImportForParsing) {
+  if (patchImport.title && patchImport.title.trim().length > 0) {
+    return patchImport.title;
+  }
+
+  const patchDate = getPatchDateForParser(patchImport);
+
+  return patchDate ? `Overwatch 2 Patch Notes - ${patchDate}` : null;
+}
+
+function getPatchDateForParser(patchImport: PatchImportForParsing) {
+  if (patchImport.patchDate) {
+    return patchImport.patchDate;
+  }
+
+  return patchImport.rawText ? inferPatchDateFromText(patchImport.rawText) : null;
 }
 
 function slugify(value: string) {

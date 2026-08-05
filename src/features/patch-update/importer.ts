@@ -112,7 +112,7 @@ function extractPatchDate(rawHtml: string, rawText: string) {
   const patchDate = matchClassText(rawHtml, "div", "PatchNotes-date");
 
   if (patchDate) {
-    return parseEnglishPatchDate(patchDate);
+    return parsePatchDateValue(patchDate);
   }
 
   const publishedTime = matchMetaContent(
@@ -125,13 +125,27 @@ function extractPatchDate(rawHtml: string, rawText: string) {
     return publishedTime.slice(0, 10);
   }
 
+  return inferPatchDateFromText(rawText);
+}
+
+export function inferPatchDateFromText(rawText: string) {
   const dateMatch = rawText.match(ENGLISH_PATCH_DATE_PATTERN);
 
-  if (!dateMatch) {
-    return null;
+  if (dateMatch) {
+    return parseEnglishPatchDate(dateMatch[0]);
   }
 
-  return parseEnglishPatchDate(dateMatch[0]);
+  const koreanDateMatch = rawText.match(KOREAN_PATCH_DATE_PATTERN);
+
+  if (koreanDateMatch) {
+    return parseKoreanPatchDate(koreanDateMatch[0]);
+  }
+
+  return null;
+}
+
+function parsePatchDateValue(value: string) {
+  return parseEnglishPatchDate(value) ?? parseKoreanPatchDate(value);
 }
 
 function extractReadableText(rawHtml: string) {
@@ -154,6 +168,7 @@ function extractReadableText(rawHtml: string) {
 
 const ENGLISH_PATCH_DATE_PATTERN =
   /\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},\s+\d{4}\b/i;
+const KOREAN_PATCH_DATE_PATTERN = /\d{4}\s*년\s*\d{1,2}\s*월\s*\d{1,2}\s*일/;
 
 const ENGLISH_MONTHS: Record<string, number> = {
   january: 0,
@@ -210,6 +225,20 @@ function parseEnglishPatchDate(value: string) {
   }
 
   return `${year}-${String(monthIndex + 1).padStart(2, "0")}-${day.padStart(2, "0")}`;
+}
+
+export function parseKoreanPatchDate(value: string) {
+  const dateMatch = cleanText(value).match(
+    /^(\d{4})\s*년\s*(\d{1,2})\s*월\s*(\d{1,2})\s*일$/,
+  );
+
+  if (!dateMatch) {
+    return null;
+  }
+
+  const [, year, month, day] = dateMatch;
+
+  return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
 }
 
 function matchMetaContent(rawHtml: string, attribute: string, value: string) {

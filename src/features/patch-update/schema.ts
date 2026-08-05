@@ -1,4 +1,8 @@
 import { z } from "zod";
+import {
+  changeTypeSchema,
+  impactLevelSchema,
+} from "@/features/patch-analysis/schema";
 
 export const patchImportStatusSchema = z.enum([
   "IMPORTED",
@@ -74,6 +78,121 @@ export const patchParseResponseSchema = z.object({
   }),
 });
 
+export const patchApplyResponseSchema = z.object({
+  data: z.object({
+    patchImportId: z.string().min(1),
+    patchId: z.string().min(1),
+    status: patchImportStatusSchema,
+    appliedChangeCount: z.number().int().nonnegative(),
+  }),
+  meta: z.object({
+    applied: z.boolean(),
+  }),
+});
+
+export const patchStagingRelationSchema = z.object({
+  id: z.string().min(1),
+  relationType: z.string().min(1),
+  value: z.string().nullable(),
+  targetHero: z
+    .object({
+      id: z.string().min(1),
+      heroId: z.string().min(1),
+      nameKo: z.string().min(1),
+      nameEn: z.string().min(1),
+    })
+    .nullable(),
+  reason: z.string().nullable(),
+});
+
+export const patchStagingChangeSchema = z.object({
+  id: z.string().min(1),
+  patchImportId: z.string().min(1),
+  hero: z
+    .object({
+      id: z.string().min(1),
+      heroId: z.string().min(1),
+      nameKo: z.string().min(1),
+      nameEn: z.string().min(1),
+      role: z.string().min(1),
+    })
+    .nullable(),
+  heroNameRaw: z.string().min(1),
+  abilityName: z.string().nullable(),
+  changeType: changeTypeSchema.nullable(),
+  impactLevel: impactLevelSchema.nullable(),
+  originalChange: z.string().min(1),
+  simpleSummary: z.string().nullable(),
+  metaImpact: z.string().nullable(),
+  recommendedPlaystyle: z.string().nullable(),
+  confidence: z.number().min(0).max(1),
+  status: patchStagingStatusSchema,
+  reviewerNote: z.string().nullable(),
+  reviewedAt: z.iso.datetime().nullable(),
+  appliedHeroChangeId: z.string().nullable(),
+  relations: z.array(patchStagingRelationSchema),
+  createdAt: z.iso.datetime(),
+  updatedAt: z.iso.datetime(),
+});
+
+export const patchImportListResponseSchema = z.object({
+  data: z.array(
+    patchImportSchema.extend({
+      stagingChangeCount: z.number().int().nonnegative(),
+      pendingReviewCount: z.number().int().nonnegative(),
+      approvedCount: z.number().int().nonnegative(),
+      rejectedCount: z.number().int().nonnegative(),
+    }),
+  ),
+  meta: z.object({
+    count: z.number().int().nonnegative(),
+  }),
+});
+
+export const patchImportReviewResponseSchema = z.object({
+  data: patchImportSchema.extend({
+    stagingChanges: z.array(patchStagingChangeSchema),
+  }),
+});
+
+export const patchStagingReviewRequestSchema = z.object({
+  status: patchStagingStatusSchema
+    .extract([
+      "PENDING",
+      "PENDING_REVIEW",
+      "NEEDS_MAPPING",
+      "APPROVED",
+      "REJECTED",
+    ])
+    .optional(),
+  heroId: z.string().min(1).nullable().optional(),
+  changeType: changeTypeSchema.nullable().optional(),
+  impactLevel: impactLevelSchema.nullable().optional(),
+  originalChange: z.string().min(1).optional(),
+  simpleSummary: z.string().min(1).nullable().optional(),
+  metaImpact: z.string().min(1).nullable().optional(),
+  recommendedPlaystyle: z.string().min(1).nullable().optional(),
+  reviewerNote: z.string().nullable().optional(),
+});
+
+export const patchStagingReviewResponseSchema = z.object({
+  data: patchStagingChangeSchema,
+  meta: z.object({
+    reviewed: z.boolean(),
+  }),
+});
+
+export const patchStagingRelationReviewRequestSchema = z.object({
+  targetHeroId: z.string().min(1).nullable(),
+});
+
+export const patchStagingRelationReviewResponseSchema = z.object({
+  data: patchStagingChangeSchema,
+  meta: z.object({
+    reviewed: z.boolean(),
+  }),
+});
+
 export const patchImportErrorCodeSchema = z.enum([
   "INVALID_IMPORT_REQUEST",
   "UNSUPPORTED_PATCH_SOURCE",
@@ -100,6 +219,37 @@ export const patchParseErrorCodeSchema = z.enum([
 export const patchParseErrorResponseSchema = z.object({
   error: z.object({
     code: patchParseErrorCodeSchema,
+    message: z.string(),
+    issues: z.array(z.string()).optional(),
+  }),
+});
+
+export const patchApplyErrorCodeSchema = z.enum([
+  "PATCH_IMPORT_NOT_FOUND",
+  "PATCH_APPLY_NOT_READY",
+  "PATCH_APPLY_FAILED",
+]);
+
+export const patchApplyErrorResponseSchema = z.object({
+  error: z.object({
+    code: patchApplyErrorCodeSchema,
+    message: z.string(),
+    issues: z.array(z.string()).optional(),
+  }),
+});
+
+export const patchStagingReviewErrorCodeSchema = z.enum([
+  "INVALID_STAGING_REVIEW_REQUEST",
+  "PATCH_IMPORT_NOT_FOUND",
+  "PATCH_STAGING_NOT_FOUND",
+  "PATCH_STAGING_RELATION_NOT_FOUND",
+  "PATCH_STAGING_HERO_NOT_FOUND",
+  "PATCH_STAGING_REVIEW_FAILED",
+]);
+
+export const patchStagingReviewErrorResponseSchema = z.object({
+  error: z.object({
+    code: patchStagingReviewErrorCodeSchema,
     message: z.string(),
     issues: z.array(z.string()).optional(),
   }),

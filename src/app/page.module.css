@@ -331,6 +331,109 @@
   padding-top: 4px;
 }
 
+.adminContent {
+  width: min(100%, 1280px);
+  margin: 0 auto;
+  padding: 18px 14px 48px;
+}
+
+.adminPage {
+  display: block;
+}
+
+.adminHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 52px;
+}
+
+.adminHeroPanel,
+.adminListPanel,
+.adminReviewPanel,
+.adminStagingCard {
+  box-shadow: 0 8px 24px rgb(22 32 50 / 6%);
+}
+
+.adminHeroPanel {
+  margin-top: 10px;
+}
+
+.adminImportForm {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.adminLayout {
+  display: grid;
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.adminImportList {
+  margin-top: 14px;
+}
+
+.adminImportItem {
+  width: 100%;
+  min-height: 116px;
+  justify-content: flex-start;
+  border-radius: 8px;
+  text-align: left;
+  white-space: normal;
+}
+
+.adminReviewGrid,
+.adminTextGrid,
+.adminRelationList,
+.adminHeroToolbar,
+.adminHeroGrid,
+.adminHeroEditGrid {
+  display: grid;
+  gap: 12px;
+}
+
+.adminStagingCard {
+  border-radius: 8px;
+}
+
+.adminHeroManagerPanel,
+.adminHeroGrid {
+  margin-top: 14px;
+}
+
+.adminHeroEditCard {
+  min-width: 0;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgb(22 32 50 / 6%);
+}
+
+.adminHeroToolbar {
+  margin-top: 16px;
+}
+
+.adminRelationList {
+  border-radius: 8px;
+  background: var(--joy-palette-background-surface);
+  padding: 12px;
+}
+
+.adminRelationRow {
+  display: grid;
+  min-width: 0;
+  gap: 10px;
+  border-radius: 8px;
+  background: var(--joy-palette-background-level1);
+  padding: 10px;
+}
+
+.adminRelationSelect {
+  min-width: min(100%, 220px);
+}
+
 @media (min-width: 760px) {
   .content {
     padding: 32px 24px 48px;
@@ -368,6 +471,37 @@
 
   .heroRelationGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .adminImportForm {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+  }
+
+  .adminReviewGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .adminTextGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .adminHeroToolbar {
+    grid-template-columns: 220px minmax(0, 1fr);
+    align-items: end;
+  }
+
+  .adminHeroGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .adminHeroEditGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .adminRelationRow {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
   }
 }
 
@@ -420,6 +554,28 @@
   .content {
     margin: 0;
     padding: 36px;
+  }
+
+  .adminContent {
+    padding: 32px 28px 56px;
+  }
+
+  .adminPage {
+    display: block;
+  }
+
+  .adminLayout {
+    grid-template-columns: 360px minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .adminListPanel {
+    position: sticky;
+    top: 24px;
+  }
+
+  .adminHeroGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .toolbar {

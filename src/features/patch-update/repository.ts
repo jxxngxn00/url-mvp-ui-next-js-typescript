@@ -1,9 +1,45 @@
 import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import type { ImportedPatchContent } from "./importer";
-import type { PatchApplyAction, PatchImport } from "./types";
+import type {
+  PatchApplyAction,
+  PatchImport,
+  PatchImportListResponse,
+  PatchImportReviewResponse,
+} from "./types";
 
 type PatchImportRecord = Prisma.PatchImportGetPayload<Record<string, never>>;
+type PatchImportListRecord = Prisma.PatchImportGetPayload<{
+  include: {
+    _count: {
+      select: {
+        stagedChanges: true;
+      };
+    };
+    stagedChanges: {
+      select: {
+        status: true;
+      };
+    };
+  };
+}>;
+type PatchImportReviewRecord = Prisma.PatchImportGetPayload<{
+  include: {
+    stagedChanges: {
+      include: {
+        hero: true;
+        relations: {
+          include: {
+            targetHero: true;
+          };
+        };
+      };
+      orderBy: {
+        createdAt: "asc";
+      };
+    };
+  };
+}>;
 export type PatchImportForParsing = PatchImport & {
   rawText: string | null;
 };
@@ -21,6 +57,13 @@ export class PatchImportSaveError extends Error {
   }
 }
 
+export class PatchImportNotFoundForReviewError extends Error {
+  constructor(message = "Patch import was not found.") {
+    super(message);
+    this.name = "PatchImportNotFoundForReviewError";
+  }
+}
+
 export type PatchImportFailureInput = {
   sourceUrl: string;
   action: Extract<PatchApplyAction, "IMPORT" | "PARSE">;
@@ -31,6 +74,8 @@ export type PatchImportFailureInput = {
 export type PatchImportParseSuccessInput = {
   patchImportId: string;
   sourceUrl: string;
+  parsedTitle?: string;
+  parsedDate?: string;
   parsedChangeCount: number;
   stagingChangeCount: number;
 };
@@ -49,6 +94,60 @@ export async function findPatchImportById(id: string) {
   });
 
   return patchImport ? mapPatchImportForParsing(patchImport) : null;
+}
+
+export async function listPatchImportsForReview(): Promise<
+  PatchImportListResponse["data"]
+> {
+  const patchImports = await prisma.patchImport.findMany({
+    orderBy: {
+      importedAt: "desc",
+    },
+    include: {
+      _count: {
+        select: {
+          stagedChanges: true,
+        },
+      },
+      stagedChanges: {
+        select: {
+          status: true,
+        },
+      },
+    },
+    take: 50,
+  });
+
+  return patchImports.map(mapPatchImportListItem);
+}
+
+export async function getPatchImportForReview(
+  id: string,
+): Promise<PatchImportReviewResponse["data"]> {
+  const patchImport = await prisma.patchImport.findUnique({
+    where: { id },
+    include: {
+      stagedChanges: {
+        include: {
+          hero: true,
+          relations: {
+            include: {
+              targetHero: true,
+            },
+          },
+        },
+        orderBy: {
+          createdAt: "asc",
+        },
+      },
+    },
+  });
+
+  if (!patchImport) {
+    throw new PatchImportNotFoundForReviewError();
+  }
+
+  return mapPatchImportReview(patchImport);
 }
 
 export async function saveImportedPatchContent(
@@ -164,6 +263,8 @@ export async function saveFailedPatchImport(
 
 export async function recordPatchParseSuccess({
   patchImportId,
+  parsedDate,
+  parsedTitle,
   sourceUrl,
   parsedChangeCount,
   stagingChangeCount,
@@ -174,6 +275,8 @@ export async function recordPatchParseSuccess({
       where: { id: patchImportId },
       data: {
         status: "REVIEWING",
+        title: parsedTitle,
+        patchDate: parsedDate ? toPatchDate(parsedDate) : undefined,
         errorMessage: null,
         parsedAt: new Date(),
         applyLogs: {
@@ -210,6 +313,78 @@ export function mapPatchImport(record: PatchImportRecord): PatchImport {
     importedAt: record.importedAt.toISOString(),
     parsedAt: record.parsedAt?.toISOString() ?? null,
     appliedAt: record.appliedAt?.toISOString() ?? null,
+    createdAt: record.createdAt.toISOString(),
+    updatedAt: record.updatedAt.toISOString(),
+  };
+}
+
+function mapPatchImportListItem(record: PatchImportListRecord) {
+  const pendingReviewStatuses = new Set(["PENDING_REVIEW", "NEEDS_MAPPING"]);
+
+  return {
+    ...mapPatchImport(record),
+    stagingChangeCount: record._count.stagedChanges,
+    pendingReviewCount: record.stagedChanges.filter((change) =>
+      pendingReviewStatuses.has(change.status),
+    ).length,
+    approvedCount: record.stagedChanges.filter(
+      (change) => change.status === "APPROVED",
+    ).length,
+    rejectedCount: record.stagedChanges.filter(
+      (change) => change.status === "REJECTED",
+    ).length,
+  };
+}
+
+function mapPatchImportReview(record: PatchImportReviewRecord) {
+  return {
+    ...mapPatchImport(record),
+    stagingChanges: record.stagedChanges.map(mapPatchStagingChange),
+  };
+}
+
+export function mapPatchStagingChange(
+  record: PatchImportReviewRecord["stagedChanges"][number],
+) {
+  return {
+    id: record.id,
+    patchImportId: record.patchImportId,
+    hero: record.hero
+      ? {
+          id: record.hero.id,
+          heroId: record.hero.heroId,
+          nameKo: record.hero.nameKo,
+          nameEn: record.hero.nameEn,
+          role: record.hero.role,
+        }
+      : null,
+    heroNameRaw: record.heroNameRaw,
+    abilityName: record.abilityName,
+    changeType: record.changeType,
+    impactLevel: record.impactLevel,
+    originalChange: record.originalChange,
+    simpleSummary: record.simpleSummary,
+    metaImpact: record.metaImpact,
+    recommendedPlaystyle: record.recommendedPlaystyle,
+    confidence: Number(record.confidence),
+    status: record.status,
+    reviewerNote: record.reviewerNote,
+    reviewedAt: record.reviewedAt?.toISOString() ?? null,
+    appliedHeroChangeId: record.appliedHeroChangeId,
+    relations: record.relations.map((relation) => ({
+      id: relation.id,
+      relationType: relation.relationType,
+      value: relation.value,
+      targetHero: relation.targetHero
+        ? {
+            id: relation.targetHero.id,
+            heroId: relation.targetHero.heroId,
+            nameKo: relation.targetHero.nameKo,
+            nameEn: relation.targetHero.nameEn,
+          }
+        : null,
+      reason: relation.reason,
+    })),
     createdAt: record.createdAt.toISOString(),
     updatedAt: record.updatedAt.toISOString(),
   };

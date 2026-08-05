@@ -2,6 +2,11 @@ import type { Prisma } from "@/generated/prisma/client";
 import type { PatchStagingStatus } from "@/generated/prisma/enums";
 import { prisma } from "@/lib/prisma";
 import type { PatchAnalysis } from "@/features/patch-analysis/types";
+import { mapPatchStagingChange } from "./repository";
+import type {
+  PatchStagingChange,
+  PatchStagingReviewRequest,
+} from "./types";
 
 type TransactionClient = Prisma.TransactionClient;
 
@@ -44,6 +49,16 @@ type StagingReviewContext = {
   autoApplyCandidate: boolean;
   reviewReasons: string[];
 };
+type PatchStagingReviewRecord = Prisma.PatchChangeStagingGetPayload<{
+  include: {
+    hero: true;
+    relations: {
+      include: {
+        targetHero: true;
+      };
+    };
+  };
+}>;
 
 const AUTO_APPLY_CONFIDENCE_THRESHOLD = 0.85;
 
@@ -55,6 +70,34 @@ export class PatchStagingSaveError extends Error {
   constructor(message = "Failed to save patch analysis staging rows.") {
     super(message);
     this.name = "PatchStagingSaveError";
+  }
+}
+
+export class PatchStagingNotFoundError extends Error {
+  constructor(message = "Patch staging change was not found.") {
+    super(message);
+    this.name = "PatchStagingNotFoundError";
+  }
+}
+
+export class PatchStagingRelationNotFoundError extends Error {
+  constructor(message = "Patch staging relation was not found.") {
+    super(message);
+    this.name = "PatchStagingRelationNotFoundError";
+  }
+}
+
+export class PatchStagingHeroNotFoundError extends Error {
+  constructor(message = "Requested hero was not found.") {
+    super(message);
+    this.name = "PatchStagingHeroNotFoundError";
+  }
+}
+
+export class PatchStagingReviewSaveError extends Error {
+  constructor(message = "Failed to save patch staging review.") {
+    super(message);
+    this.name = "PatchStagingReviewSaveError";
   }
 }
 
@@ -151,6 +194,193 @@ export async function savePatchAnalysisToStaging(
   } catch (error) {
     throw new PatchStagingSaveError(getErrorMessage(error));
   }
+}
+
+export async function updatePatchStagingReview(
+  patchImportId: string,
+  stagingChangeId: string,
+  request: PatchStagingReviewRequest,
+): Promise<PatchStagingChange> {
+  try {
+    return await prisma.$transaction(async (tx) => {
+      const existing = await tx.patchChangeStaging.findFirst({
+        where: {
+          id: stagingChangeId,
+          patchImportId,
+        },
+      });
+
+      if (!existing) {
+        throw new PatchStagingNotFoundError();
+      }
+
+      if (existing.status === "APPLIED") {
+        throw new PatchStagingReviewSaveError(
+          "Applied staging rows cannot be edited.",
+        );
+      }
+
+      const hero = await resolveReviewHero(tx, request.heroId);
+      const status = request.status ?? existing.status;
+      const nextHeroId =
+        request.heroId === undefined ? existing.heroId : hero?.id ?? null;
+      const reviewedAt =
+        status === "APPROVED" || status === "REJECTED" ? new Date() : null;
+
+      if (status === "APPROVED" && !nextHeroId) {
+        throw new PatchStagingReviewSaveError(
+          "Approved staging rows must be mapped to a hero.",
+        );
+      }
+
+      const updated = await tx.patchChangeStaging.update({
+        where: {
+          id: stagingChangeId,
+        },
+        data: {
+          status,
+          heroId: request.heroId === undefined ? undefined : nextHeroId,
+          changeType: request.changeType,
+          impactLevel: request.impactLevel,
+          originalChange: request.originalChange,
+          simpleSummary: request.simpleSummary,
+          metaImpact: request.metaImpact,
+          recommendedPlaystyle: request.recommendedPlaystyle,
+          reviewerNote: request.reviewerNote,
+          reviewedAt,
+        },
+        include: {
+          hero: true,
+          relations: {
+            include: {
+              targetHero: true,
+            },
+          },
+        },
+      });
+
+      return mapPatchStagingChange(updated as PatchStagingReviewRecord);
+    });
+  } catch (error) {
+    if (
+      error instanceof PatchStagingNotFoundError ||
+      error instanceof PatchStagingHeroNotFoundError ||
+      error instanceof PatchStagingReviewSaveError
+    ) {
+      throw error;
+    }
+
+    throw new PatchStagingReviewSaveError(getErrorMessage(error));
+  }
+}
+
+export async function updatePatchStagingRelationReview(
+  patchImportId: string,
+  stagingChangeId: string,
+  relationId: string,
+  request: {
+    targetHeroId: string | null;
+  },
+): Promise<PatchStagingChange> {
+  try {
+    return await prisma.$transaction(async (tx) => {
+      const existing = await tx.patchChangeStaging.findFirst({
+        where: {
+          id: stagingChangeId,
+          patchImportId,
+        },
+      });
+
+      if (!existing) {
+        throw new PatchStagingNotFoundError();
+      }
+
+      if (existing.status === "APPLIED") {
+        throw new PatchStagingReviewSaveError(
+          "Applied staging rows cannot be edited.",
+        );
+      }
+
+      const relation = await tx.patchStagingRelation.findFirst({
+        where: {
+          id: relationId,
+          stagingChangeId,
+        },
+      });
+
+      if (!relation) {
+        throw new PatchStagingRelationNotFoundError();
+      }
+
+      if (
+        relation.relationType !== "SYNERGY" &&
+        relation.relationType !== "COUNTER"
+      ) {
+        throw new PatchStagingReviewSaveError(
+          "Only related hero relations can be remapped.",
+        );
+      }
+
+      const hero = await resolveReviewHero(tx, request.targetHeroId);
+
+      await tx.patchStagingRelation.update({
+        where: {
+          id: relationId,
+        },
+        data: {
+          targetHeroId: hero?.id ?? null,
+        },
+      });
+
+      const updated = await tx.patchChangeStaging.findUniqueOrThrow({
+        where: {
+          id: stagingChangeId,
+        },
+        include: {
+          hero: true,
+          relations: {
+            include: {
+              targetHero: true,
+            },
+          },
+        },
+      });
+
+      return mapPatchStagingChange(updated as PatchStagingReviewRecord);
+    });
+  } catch (error) {
+    if (
+      error instanceof PatchStagingNotFoundError ||
+      error instanceof PatchStagingRelationNotFoundError ||
+      error instanceof PatchStagingHeroNotFoundError ||
+      error instanceof PatchStagingReviewSaveError
+    ) {
+      throw error;
+    }
+
+    throw new PatchStagingReviewSaveError(getErrorMessage(error));
+  }
+}
+
+async function resolveReviewHero(
+  tx: TransactionClient,
+  heroId: string | null | undefined,
+) {
+  if (heroId === undefined || heroId === null) {
+    return null;
+  }
+
+  const hero = await tx.hero.findUnique({
+    where: {
+      heroId,
+    },
+  });
+
+  if (!hero) {
+    throw new PatchStagingHeroNotFoundError();
+  }
+
+  return hero;
 }
 
 async function buildHeroLookup(

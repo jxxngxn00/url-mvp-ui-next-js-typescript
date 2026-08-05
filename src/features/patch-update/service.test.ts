@@ -118,6 +118,8 @@ describe("parsePatchImport", () => {
     expect(mockRepository.recordPatchParseSuccess).toHaveBeenCalledWith({
       patchImportId: "patch_import_1",
       sourceUrl: "https://overwatch.blizzard.com/en-us/news/patch-notes/",
+      parsedTitle: "Overwatch Retail Patch Notes – July 14, 2026",
+      parsedDate: "2026-07-14",
       parsedChangeCount: 1,
       stagingChangeCount: 1,
     });
@@ -223,6 +225,29 @@ describe("loadPatchAnalysisInput", () => {
       patchDate: "2026-07-14",
       sourceUrl: "https://overwatch.blizzard.com/en-us/news/patch-notes/",
       rawContent: "latest patch raw text",
+    });
+  });
+
+  it("기존 import row에 title/date가 없어도 rawText의 한국어 날짜로 parser input을 보완한다", async () => {
+    mockRepository.findPatchImportById.mockResolvedValueOnce(
+      createPatchImportForParsing({
+        sourceUrl:
+          "https://overwatch.blizzard.com/ko-kr/news/patch-notes/live/2026/07",
+        title: null,
+        patchDate: null,
+        rawText: "오버워치 2 패치 노트\n2026년 7월 15일\n영웅 밸런스 업데이트",
+      }),
+    );
+
+    const result = await loadPatchAnalysisInput("patch_import_1");
+
+    expect(result.input).toEqual({
+      patchId: "ow2-2026-07-15-overwatch-2-patch-notes-2026-07-15",
+      patchTitle: "Overwatch 2 Patch Notes - 2026-07-15",
+      patchDate: "2026-07-15",
+      sourceUrl:
+        "https://overwatch.blizzard.com/ko-kr/news/patch-notes/live/2026/07",
+      rawContent: "오버워치 2 패치 노트\n2026년 7월 15일\n영웅 밸런스 업데이트",
     });
   });
 

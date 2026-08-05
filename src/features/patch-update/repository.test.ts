@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ImportedPatchContent } from "./importer";
 import {
+  getPatchImportForReview,
+  listPatchImportsForReview,
   recordPatchParseSuccess,
   saveFailedPatchImport,
   saveImportedPatchContent,
@@ -9,6 +11,7 @@ import {
 const mockPrisma = vi.hoisted(() => ({
   patchImport: {
     findUnique: vi.fn(),
+    findMany: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),
     upsert: vi.fn(),
@@ -192,6 +195,106 @@ describe("patch update repository", () => {
     });
     expect(result.status).toBe("REVIEWING");
   });
+
+  it("검수용 import 목록은 staging 상태별 개수를 함께 반환한다", async () => {
+    mockPrisma.patchImport.findMany.mockResolvedValueOnce([
+      {
+        ...createPatchImportRecord({
+          id: "patch_import_reviewing",
+          status: "REVIEWING",
+        }),
+        _count: {
+          stagedChanges: 3,
+        },
+        stagedChanges: [
+          { status: "PENDING_REVIEW" },
+          { status: "NEEDS_MAPPING" },
+          { status: "APPROVED" },
+        ],
+      },
+    ]);
+
+    const result = await listPatchImportsForReview();
+
+    expect(mockPrisma.patchImport.findMany).toHaveBeenCalledWith({
+      orderBy: {
+        importedAt: "desc",
+      },
+      include: {
+        _count: {
+          select: {
+            stagedChanges: true,
+          },
+        },
+        stagedChanges: {
+          select: {
+            status: true,
+          },
+        },
+      },
+      take: 50,
+    });
+    expect(result).toEqual([
+      expect.objectContaining({
+        id: "patch_import_reviewing",
+        stagingChangeCount: 3,
+        pendingReviewCount: 2,
+        approvedCount: 1,
+        rejectedCount: 0,
+      }),
+    ]);
+  });
+
+  it("검수용 import 상세는 staging rows와 relation을 함께 반환한다", async () => {
+    mockPrisma.patchImport.findUnique.mockResolvedValueOnce({
+      ...createPatchImportRecord({
+        id: "patch_import_reviewing",
+        status: "REVIEWING",
+      }),
+      stagedChanges: [
+        createStagingChangeRecord(),
+      ],
+    });
+
+    const result = await getPatchImportForReview("patch_import_reviewing");
+
+    expect(mockPrisma.patchImport.findUnique).toHaveBeenCalledWith({
+      where: {
+        id: "patch_import_reviewing",
+      },
+      include: {
+        stagedChanges: {
+          include: {
+            hero: true,
+            relations: {
+              include: {
+                targetHero: true,
+              },
+            },
+          },
+          orderBy: {
+            createdAt: "asc",
+          },
+        },
+      },
+    });
+    expect(result).toMatchObject({
+      id: "patch_import_reviewing",
+      stagingChanges: [
+        {
+          id: "staging_1",
+          heroNameRaw: "Cassidy",
+          confidence: 0.95,
+          relations: [
+            {
+              relationType: "AFFECTED_TIER",
+              value: "Gold",
+            },
+          ],
+        },
+      ],
+    });
+  });
 });
 
 function createImportedPatchContent(): ImportedPatchContent {
@@ -224,5 +327,49 @@ function createPatchImportRecord(
     createdAt: new Date("2026-07-14T01:00:00.000Z"),
     updatedAt: new Date("2026-07-14T01:00:00.000Z"),
     ...overrides,
+  };
+}
+
+function createStagingChangeRecord() {
+  return {
+    id: "staging_1",
+    patchImportId: "patch_import_reviewing",
+    heroId: "hero_cassidy",
+    hero: {
+      id: "hero_cassidy",
+      heroId: "cassidy",
+      nameKo: "캐서디",
+      nameEn: "Cassidy",
+      role: "DAMAGE",
+    },
+    heroNameRaw: "Cassidy",
+    abilityName: null,
+    changeType: "BUFF",
+    impactLevel: "MEDIUM",
+    originalChange: "Damage increased from 70 to 75.",
+    simpleSummary: "Damage increased.",
+    metaImpact: "Cassidy is stronger.",
+    recommendedPlaystyle: "Take mid-range fights.",
+    parsedPayload: {},
+    confidence: 0.95,
+    status: "PENDING_REVIEW",
+    reviewerNote: "Needs review.",
+    reviewedAt: null,
+    appliedHeroChangeId: null,
+    relations: [
+      {
+        id: "relation_1",
+        stagingChangeId: "staging_1",
+        relationType: "AFFECTED_TIER",
+        value: "Gold",
+        targetHeroId: null,
+        targetHero: null,
+        reason: null,
+        createdAt: new Date("2026-07-14T01:00:00.000Z"),
+      },
+    ],
+    applyLogs: [],
+    createdAt: new Date("2026-07-14T01:00:00.000Z"),
+    updatedAt: new Date("2026-07-14T01:00:00.000Z"),
   };
 }

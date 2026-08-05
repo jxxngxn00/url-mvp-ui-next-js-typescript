@@ -27,6 +27,16 @@ describe("normalizeOfficialPatchUrl", () => {
     ).toBe("https://overwatch.blizzard.com/ko-kr/news/patch-notes/");
   });
 
+  it("월별 live 패치노트 URL도 허용한다", () => {
+    expect(
+      normalizeOfficialPatchUrl(
+        "https://overwatch.blizzard.com/ko-kr/news/patch-notes/live/2026/07?utm=test#latest",
+      ),
+    ).toBe(
+      "https://overwatch.blizzard.com/ko-kr/news/patch-notes/live/2026/07",
+    );
+  });
+
   it("구형 공식 패치노트 경로도 허용한다", () => {
     expect(normalizeOfficialPatchUrl("https://overwatch.blizzard.com/patch-notes")).toBe(
       "https://overwatch.blizzard.com/patch-notes",
@@ -158,6 +168,35 @@ describe("fetchOfficialPatchNote", () => {
     expect(result.rawText).toContain("Summer Games 2026 is LIVE.");
     expect(result.rawText).not.toContain("July 2, 2026");
     expect(result.rawText).not.toContain("older patch");
+  });
+
+  it("한국어 공식 페이지 날짜를 patchDate로 변환한다", async () => {
+    const html = [
+      '<div class="PatchNotes-list">',
+      '<div class="PatchNotes-patch PatchNotes-live">',
+      '<div class="PatchNotes-date">2026년 7월 15일</div>',
+      '<h3 class="PatchNotes-patchTitle">오버워치 2 패치 노트 - 2026년 7월 15일</h3>',
+      "<p>영웅 밸런스 업데이트</p>",
+      "</div>",
+      "</div>",
+    ].join("");
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(html, {
+          status: 200,
+        }),
+      ),
+    );
+
+    const result = await fetchOfficialPatchNote(
+      "https://overwatch.blizzard.com/ko-kr/news/patch-notes/live/2026/07",
+    );
+
+    expect(result.title).toBe("오버워치 2 패치 노트 - 2026년 7월 15일");
+    expect(result.patchDate).toBe("2026-07-15");
+    expect(result.rawText).toContain("영웅 밸런스 업데이트");
   });
 
   it("공식 페이지 응답이 실패하면 PatchFetchError를 던진다", async () => {
