@@ -48,7 +48,7 @@ export function Brand({
       </Box>
       <Box>
         <Typography level="title-sm">
-          {long ? "Overwatch Patch Insight" : "Patch Insight"}
+          {long ? "PatchSignal" : "PatchSignal"}
         </Typography>
         {long ? (
           <Typography level="body-xs" textColor="text.tertiary">

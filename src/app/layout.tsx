@@ -3,8 +3,9 @@ import "./globals.css";
 import { Providers } from "./providers";
 
 export const metadata: Metadata = {
-  title: "Overwatch Patch Insight",
-  description: "Overwatch patch note analysis cards by hero and meta impact.",
+  title: "PatchSignal",
+  description:
+    "Structured Overwatch patch note analysis by hero and meta impact.",
 };
 
 export default function RootLayout({

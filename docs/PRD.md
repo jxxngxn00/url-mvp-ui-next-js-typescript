@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-Overwatch Patch Insight is a responsive web service that analyzes Overwatch patch notes and presents the expected gameplay impact by hero.
+PatchSignal is a responsive web service that analyzes Overwatch patch notes and presents the expected gameplay impact by hero.
 
 Users enter or select a patch note URL. The service extracts hero-level changes and generates structured analysis cards containing impact level, meta influence, affected competitive tiers, recommended playstyle, counters, and synergies.
 
