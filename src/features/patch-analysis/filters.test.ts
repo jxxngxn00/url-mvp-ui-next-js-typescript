@@ -47,14 +47,14 @@ const heroChanges: HeroChange[] = [
 
 const timeline: MetaTimelinePatch[] = [
   {
-    patchId: "ow2-2026-06-sample",
+    patchId: "test-patch-2026-06",
     patchTitle: "2026년 6월 밸런스 패치",
     patchDate: "2026-06-20",
     metaSummary: "중거리 교전 구도가 바뀝니다.",
     highImpactChangeCount: 1,
     entries: heroChanges.map((change) => ({
-      timelineId: `ow2-2026-06-sample:${change.changeId}`,
-      patchId: "ow2-2026-06-sample",
+      timelineId: `test-patch-2026-06:${change.changeId}`,
+      patchId: "test-patch-2026-06",
       patchTitle: "2026년 6월 밸런스 패치",
       patchDate: "2026-06-20",
       hero: change.hero,

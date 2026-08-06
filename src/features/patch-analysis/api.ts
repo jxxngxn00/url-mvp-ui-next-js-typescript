@@ -63,126 +63,42 @@ export type PatchAnalyzeErrorResponse = z.infer<
   typeof patchAnalyzeErrorResponseSchema
 >;
 
-const isDevelopment = process.env.NODE_ENV === "development";
-
-async function getDevFallbackPatchAnalysis() {
-  const { devFallbackPatchAnalysis } = await import("./mock");
-
-  return devFallbackPatchAnalysis;
-}
-
-async function getDevFallbackPatchList(): Promise<PatchSummary[]> {
-  const fallback = await getDevFallbackPatchAnalysis();
-  const highImpactChangeCount = fallback.changes.filter(
-    (change) => change.impactLevel === "HIGH",
-  ).length;
-
-  return [
-    patchSummarySchema.parse({
-      patchId: fallback.patchId,
-      patchTitle: fallback.patchTitle,
-      patchDate: fallback.patchDate,
-      sourceUrl: fallback.sourceUrl,
-      overallSummary: fallback.overallSummary,
-      metaSummary: fallback.metaSummary,
-      changeCount: fallback.changes.length,
-      highImpactChangeCount,
-    }),
-  ];
-}
-
-async function getDevFallbackMetaTimeline(): Promise<MetaTimelinePatch[]> {
-  const fallback = await getDevFallbackPatchAnalysis();
-  const highImpactChangeCount = fallback.changes.filter(
-    (change) => change.impactLevel === "HIGH",
-  ).length;
-
-  return [
-    metaTimelinePatchSchema.parse({
-      patchId: fallback.patchId,
-      patchTitle: fallback.patchTitle,
-      patchDate: fallback.patchDate,
-      metaSummary: fallback.metaSummary,
-      highImpactChangeCount,
-      entries: fallback.changes.map((change) => ({
-        timelineId: `${fallback.patchId}:${change.changeId}`,
-        patchId: fallback.patchId,
-        patchTitle: fallback.patchTitle,
-        patchDate: fallback.patchDate,
-        hero: change.hero,
-        changeType: change.changeType,
-        impactLevel: change.impactLevel,
-        simpleSummary: change.simpleSummary,
-        metaImpact: change.metaImpact,
-      })),
-    }),
-  ];
-}
-
 export async function fetchPatchList(): Promise<PatchSummary[]> {
-  try {
-    const response = await fetch("/api/patches");
-    const payload: unknown = await response.json();
+  const response = await fetch("/api/patches");
+  const payload: unknown = await response.json();
 
-    if (!response.ok) {
-      throw new Error("Patch list request failed.");
-    }
-
-    return patchListResponseSchema.parse(payload).data;
-  } catch (error) {
-    if (isDevelopment) {
-      return getDevFallbackPatchList();
-    }
-
-    throw error;
+  if (!response.ok) {
+    throw new Error("Patch list request failed.");
   }
+
+  return patchListResponseSchema.parse(payload).data;
 }
 
 export async function fetchPatchAnalysis(
   patchId: string,
 ): Promise<PatchAnalysis> {
-  try {
-    const response = await fetch(`/api/patches/${encodeURIComponent(patchId)}`);
-    const payload: unknown = await response.json();
+  const response = await fetch(`/api/patches/${encodeURIComponent(patchId)}`);
+  const payload: unknown = await response.json();
 
-    if (!response.ok) {
-      const parsedError = patchAnalysisErrorResponseSchema.safeParse(payload);
-      const message = parsedError.success
-        ? parsedError.data.error.message
-        : "Patch analysis request failed.";
+  if (!response.ok) {
+    const parsedError = patchAnalysisErrorResponseSchema.safeParse(payload);
+    const message = parsedError.success
+      ? parsedError.data.error.message
+      : "Patch analysis request failed.";
 
-      throw new Error(message);
-    }
-
-    return patchAnalysisResponseSchema.parse(payload).data;
-  } catch (error) {
-    if (isDevelopment) {
-      const fallback = await getDevFallbackPatchAnalysis();
-
-      if (fallback.patchId === patchId) {
-        return fallback;
-      }
-    }
-
-    throw error;
+    throw new Error(message);
   }
+
+  return patchAnalysisResponseSchema.parse(payload).data;
 }
 
 export async function fetchMetaTimeline(): Promise<MetaTimelinePatch[]> {
-  try {
-    const response = await fetch("/api/meta-timeline");
-    const payload: unknown = await response.json();
+  const response = await fetch("/api/meta-timeline");
+  const payload: unknown = await response.json();
 
-    if (!response.ok) {
-      throw new Error("Meta timeline request failed.");
-    }
-
-    return metaTimelineResponseSchema.parse(payload).data;
-  } catch (error) {
-    if (isDevelopment) {
-      return getDevFallbackMetaTimeline();
-    }
-
-    throw error;
+  if (!response.ok) {
+    throw new Error("Meta timeline request failed.");
   }
+
+  return metaTimelineResponseSchema.parse(payload).data;
 }

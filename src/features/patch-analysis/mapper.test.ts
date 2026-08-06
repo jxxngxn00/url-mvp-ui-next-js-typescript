@@ -49,7 +49,7 @@ const winstonHero = {
 
 const patchBase = {
   id: "patch-db-id",
-  patchId: "ow2-2026-06-sample",
+  patchId: "test-patch-2026-06",
   title: "2026년 6월 밸런스 패치",
   patchDate: new Date("2026-06-20T00:00:00.000Z"),
   sourceUrl: "https://example.com/patch-notes",
@@ -84,7 +84,7 @@ describe("patch analysis mapper", () => {
     } as PatchSummaryRecord;
 
     expect(mapPatchNoteToPatchSummary(patch)).toMatchObject({
-      patchId: "ow2-2026-06-sample",
+      patchId: "test-patch-2026-06",
       patchDate: "2026-06-20",
       changeCount: 2,
       highImpactChangeCount: 1,
@@ -140,12 +140,12 @@ describe("patch analysis mapper", () => {
     } as unknown as MetaTimelinePatchRecord;
 
     expect(mapPatchNoteToMetaTimelinePatch(patch)).toMatchObject({
-      patchId: "ow2-2026-06-sample",
+      patchId: "test-patch-2026-06",
       patchDate: "2026-06-20",
       highImpactChangeCount: 1,
       entries: [
         {
-          timelineId: "ow2-2026-06-sample:change-sojourn-railgun",
+          timelineId: "test-patch-2026-06:change-sojourn-railgun",
           hero: {
             heroId: "sojourn",
           },

@@ -6,7 +6,7 @@ import {
 } from "./validator";
 
 const validPatchAnalysis = {
-  patchId: "ow2-2026-06-sample",
+  patchId: "test-patch-2026-06",
   patchTitle: "2026년 6월 밸런스 패치",
   patchDate: "2026-06-20",
   sourceUrl: "https://example.com/patch-notes",
@@ -40,7 +40,7 @@ describe("patch analysis JSON validator", () => {
 
     expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.patchId).toBe("ow2-2026-06-sample");
+      expect(result.data.patchId).toBe("test-patch-2026-06");
     }
   });
 

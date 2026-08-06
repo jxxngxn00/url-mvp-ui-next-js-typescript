@@ -1,7 +1,5 @@
 import type { ChangeType, HeroRole, ImpactLevel } from "./types";
 
-export const DEFAULT_PATCH_ID = "ow2-2026-06-sample";
-
 export const roles: Array<{ label: string; value: HeroRole | "ALL" }> = [
   { label: "전체", value: "ALL" },
   { label: "탱커", value: "TANK" },

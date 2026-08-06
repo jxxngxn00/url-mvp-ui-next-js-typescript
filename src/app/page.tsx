@@ -20,7 +20,6 @@ import {
   fetchPatchAnalysis,
   fetchPatchList,
 } from "@/features/patch-analysis/api";
-import { DEFAULT_PATCH_ID } from "@/features/patch-analysis/constants";
 import {
   filterHeroChanges,
   filterMetaTimeline,
@@ -36,7 +35,7 @@ import logoIcon from "./logo_icons.png";
 
 export default function Home() {
   const [selectedRole, setSelectedRole] = useState<HeroRole | "ALL">("ALL");
-  const [selectedPatchId, setSelectedPatchId] = useState(DEFAULT_PATCH_ID);
+  const [selectedPatchId, setSelectedPatchId] = useState<string | null>(null);
   const [selectedChangeType, setSelectedChangeType] = useState<
     ChangeType | "ALL"
   >("ALL");
@@ -55,6 +54,8 @@ export default function Home() {
     queryFn: fetchPatchList,
   });
 
+  const activePatchId = selectedPatchId ?? patches[0]?.patchId ?? null;
+
   const {
     data: timeline = [],
     isLoading: isTimelineLoading,
@@ -71,8 +72,9 @@ export default function Home() {
     isError,
     refetch: refetchPatchAnalysis,
   } = useQuery({
-    queryKey: ["patch-analysis", selectedPatchId],
-    queryFn: () => fetchPatchAnalysis(selectedPatchId),
+    enabled: activePatchId !== null,
+    queryKey: ["patch-analysis", activePatchId],
+    queryFn: () => fetchPatchAnalysis(activePatchId as string),
   });
 
   const selectedFilters = useMemo<PatchChangeFilters>(
@@ -119,8 +121,12 @@ export default function Home() {
     );
   }
 
-  if (isLoading || isPatchListLoading || isTimelineLoading || !data) {
+  if (isLoading || isPatchListLoading || isTimelineLoading) {
     return <StateCard title="패치 분석을 불러오는 중입니다." />;
+  }
+
+  if (patches.length === 0 || activePatchId === null || !data) {
+    return <StateCard title="아직 저장된 패치 분석 데이터가 없습니다." />;
   }
 
   const highImpactChanges = data.changes.filter(
@@ -139,7 +145,7 @@ export default function Home() {
         <PatchListPanel
           onPatchSelect={setSelectedPatchId}
           patches={patches}
-          selectedPatchId={selectedPatchId}
+          selectedPatchId={activePatchId}
         />
         <PatchSummaryPanel
           highImpactCount={highImpactChanges.length}

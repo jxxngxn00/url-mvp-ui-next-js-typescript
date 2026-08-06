@@ -5,7 +5,7 @@ import {
 } from "./schema";
 
 const samplePatchAnalysis = {
-  patchId: "ow2-2026-06-sample",
+  patchId: "test-patch-2026-06",
   patchTitle: "2026년 6월 밸런스 패치",
   patchDate: "2026-06-20",
   sourceUrl: "https://example.com/patch-notes",
