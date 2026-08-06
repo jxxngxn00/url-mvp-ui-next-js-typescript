@@ -292,6 +292,7 @@ export default function AdminPatchNotesPage() {
                       color={selected ? "primary" : "neutral"}
                       key={patchImport.id}
                       onClick={() => setSelectedImportId(patchImport.id)}
+                      aria-current={selected ? "page" : undefined}
                       variant={selected ? "soft" : "plain"}
                     >
                       <Box className={styles.patchListItemBody}>

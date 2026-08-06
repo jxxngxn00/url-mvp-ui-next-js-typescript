@@ -44,9 +44,11 @@
 }
 
 .page :global(.MuiButton-root) {
+  --Button-radius: 999px;
+
   min-height: 38px;
   border: 1px solid transparent;
-  border-radius: 999px;
+  border-radius: var(--Button-radius);
   font-weight: 800;
   letter-spacing: 0;
   transition:
@@ -274,6 +276,8 @@
 
 .patchListItem,
 .adminImportItem {
+  --Button-radius: 8px;
+
   position: relative;
   overflow: hidden;
   width: 100%;
@@ -286,6 +290,13 @@
   white-space: normal;
 }
 
+.patchListItem:global(.MuiButton-root),
+.adminImportItem:global(.MuiButton-root) {
+  --Button-radius: 8px;
+
+  border-radius: 8px;
+}
+
 .patchListItem:hover,
 .adminImportItem:hover {
   border-color: rgb(54 215 255 / 55%);
@@ -296,6 +307,8 @@
 
 .patchListItem[aria-current="page"],
 .adminImportItem[aria-current="page"] {
+  --Button-radius: 8px;
+
   border-color: rgb(54 215 255 / 78%);
   background:
     linear-gradient(90deg, rgb(54 215 255 / 18%), transparent 34%),
@@ -303,6 +316,14 @@
   box-shadow:
     var(--soft-glow),
     inset 0 0 0 1px rgb(255 255 255 / 5%);
+  border-radius: 8px;
+}
+
+.patchListItem:global(.MuiButton-root)[aria-current="page"],
+.adminImportItem:global(.MuiButton-root)[aria-current="page"] {
+  --Button-radius: 8px;
+
+  border-radius: 8px;
 }
 
 .patchListItem[aria-current="page"]::before,
