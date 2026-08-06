@@ -1,37 +1,197 @@
 .page {
+  --bg: #111216;
+  --bg-deep: #0c0d12;
+  --surface: #171a21;
+  --panel: #20242d;
+  --panel-strong: #2a303b;
+  --line: #3a4352;
+  --line-strong: #566276;
+  --text: #f2f6ff;
+  --muted: #9aa7b9;
+  --blue: #1e88ff;
+  --cyan: #36d7ff;
+  --purple: #a728ff;
+  --pink: #ff2fb3;
+  --green: #6dff8c;
+  --orange: #ff8a35;
+  --shadow: 0 22px 60px rgb(0 0 0 / 36%);
+  --soft-glow: 0 0 26px rgb(54 215 255 / 18%);
+
   min-height: 100vh;
-  background: var(--joy-palette-background-body);
-  color: var(--joy-palette-text-primary);
+  background:
+    radial-gradient(circle at 13% 8%, rgb(30 136 255 / 16%), transparent 28%),
+    radial-gradient(circle at 78% 12%, rgb(167 40 255 / 16%), transparent 24%),
+    linear-gradient(180deg, #111216 0%, #0d0f15 100%);
+  color: var(--text);
 }
 
-/* Mobile is the default layout. Keep these page-level offsets together so a future
-   navigation redesign only has one place to revisit. */
+.page :global(.MuiTypography-root) {
+  color: inherit;
+}
+
+.page :global(.MuiTypography-colorTextSecondary),
+.page :global(.MuiTypography-colorTextTertiary) {
+  color: var(--muted);
+}
+
+.page :global(.MuiCard-root),
+.page :global(.MuiSheet-root) {
+  --Card-radius: 8px;
+  --Sheet-radius: 8px;
+  border-color: var(--line);
+  background-color: var(--panel);
+  color: var(--text);
+}
+
+.page :global(.MuiButton-root) {
+  min-height: 38px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-weight: 800;
+  letter-spacing: 0;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    box-shadow 160ms ease,
+    color 160ms ease,
+    transform 160ms ease;
+}
+
+.page :global(.MuiButton-variantSolid) {
+  border-color: rgb(54 215 255 / 28%);
+  background: linear-gradient(135deg, #a728ff, #1e88ff 56%, #36d7ff);
+  color: white;
+  box-shadow: 0 12px 28px rgb(167 40 255 / 26%);
+}
+
+.page :global(.MuiButton-variantSolid:hover) {
+  border-color: rgb(54 215 255 / 72%);
+  background: linear-gradient(135deg, #b83cff, #2f95ff 54%, #51e0ff);
+  box-shadow:
+    0 14px 34px rgb(30 136 255 / 28%),
+    0 0 20px rgb(54 215 255 / 24%);
+  transform: translateY(-1px);
+}
+
+.page :global(.MuiButton-variantSoft),
+.page :global(.MuiButton-variantPlain) {
+  color: var(--text);
+}
+
+.page :global(.MuiButton-variantSoft) {
+  border-color: rgb(58 67 82 / 86%);
+  background: #2a303b;
+}
+
+.page :global(.MuiButton-variantSoft:hover),
+.page :global(.MuiButton-variantPlain:hover) {
+  border-color: rgb(54 215 255 / 58%);
+  background: linear-gradient(135deg, rgb(30 136 255 / 22%), rgb(167 40 255 / 20%));
+  color: var(--text);
+  box-shadow: 0 0 18px rgb(54 215 255 / 14%);
+}
+
+.page :global(.MuiButton-root.Mui-disabled) {
+  border-color: rgb(58 67 82 / 45%);
+  background: #20242d;
+  color: rgb(154 167 185 / 45%);
+  box-shadow: none;
+  transform: none;
+}
+
+.page :global(.MuiChip-root) {
+  border-radius: 999px;
+  font-weight: 800;
+}
+
+.page :global(.MuiInput-root),
+.page :global(.MuiSelect-root),
+.page :global(.MuiTextarea-root) {
+  --Input-radius: 8px;
+  --Select-radius: 8px;
+  --Textarea-radius: 8px;
+  border-color: var(--line);
+  background: #151922;
+  color: var(--text);
+}
+
+.page :global(.MuiFormLabel-root) {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
 .content {
-  width: min(100%, 1120px);
+  position: relative;
+  z-index: 1;
+  width: min(100%, 1160px);
   margin: 0 auto;
-  padding: 16px 14px calc(96px + env(safe-area-inset-bottom));
+  padding: 18px 14px calc(98px + env(safe-area-inset-bottom));
+}
+
+.content::before,
+.content::after {
+  position: fixed;
+  z-index: -1;
+  display: none;
+  width: 140px;
+  height: 220px;
+  border-radius: 44px 44px 12px 12px;
+  background:
+    radial-gradient(circle at 50% 16%, #2a303b 0 15%, transparent 16%),
+    linear-gradient(180deg, rgb(54 215 255 / 82%), rgb(30 136 255 / 22%));
+  filter: drop-shadow(0 0 28px rgb(54 215 255 / 20%));
+  opacity: 0.62;
+  content: "";
+}
+
+.content::before {
+  top: 82px;
+  left: 278px;
+  transform: rotate(-18deg) scale(0.42);
+}
+
+.content::after {
+  top: 88px;
+  right: 32px;
+  background:
+    radial-gradient(circle at 50% 16%, #2a303b 0 15%, transparent 16%),
+    linear-gradient(180deg, rgb(167 40 255 / 92%), rgb(255 47 179 / 22%));
+  filter: drop-shadow(0 0 28px rgb(167 40 255 / 22%));
+  transform: rotate(18deg) scale(0.42);
 }
 
 .mobileHeader {
   display: flex;
   align-items: center;
-  min-height: 52px;
+  min-height: 58px;
 }
 
 .brandMark {
+  position: relative;
   display: inline-flex;
-  width: 34px;
-  height: 34px;
+  width: 42px;
+  height: 42px;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
+  border: 1px solid rgb(54 215 255 / 50%);
   border-radius: 8px;
-  background: #f7a928;
-  color: #111827;
-  font-size: 13px;
-  font-weight: 800;
+  background: linear-gradient(135deg, #1e88ff, #a728ff);
+  box-shadow: 0 0 22px rgb(54 215 255 / 22%);
+}
+
+.brandMark::after {
+  position: absolute;
+  inset: 5px;
+  border: 1px solid rgb(255 255 255 / 18%);
+  border-radius: 6px;
+  content: "";
 }
 
 .brandMark img {
+  position: relative;
+  z-index: 1;
   width: 100%;
   height: 100%;
   object-fit: contain;
@@ -41,27 +201,51 @@
   display: none;
 }
 
-.nav a {
-  justify-content: flex-start;
+.nav {
+  margin-top: 34px;
 }
 
-/* Shared card treatment for the current MVP shell. If the UI is redesigned,
-   this block is the main place to flatten or replace card elevation. */
+.nav a {
+  justify-content: flex-start;
+  padding-inline: 18px;
+}
+
 .summaryPanel,
 .metaPanel,
 .heroCard,
 .patchListPanel,
 .timelinePanel,
 .stateCard,
-.inlineStateCard {
-  box-shadow: 0 8px 24px rgb(22 32 50 / 6%);
+.inlineStateCard,
+.heroDetailHeroPanel {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: linear-gradient(180deg, rgb(42 48 59 / 94%), rgb(23 26 33 / 96%));
+  box-shadow: var(--shadow);
 }
 
-.patchListPanel {
-  margin-top: 10px;
+.summaryPanel::before,
+.heroDetailHeroPanel::before {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 54px;
+  background: linear-gradient(90deg, var(--purple), var(--blue), var(--cyan));
+  opacity: 0.95;
+  content: "";
 }
 
-.patchList {
+.summaryPanel > *,
+.heroDetailHeroPanel > * {
+  position: relative;
+  z-index: 1;
+}
+
+.patchListPanel,
+.summaryPanel,
+.metaPanel,
+.timelinePanel,
+.heroDetailHeroPanel {
   margin-top: 14px;
 }
 
@@ -80,13 +264,71 @@
   min-width: 0;
 }
 
-.patchListItem {
+.patchListPanel {
+  background: linear-gradient(180deg, #20242d, #171a21);
+}
+
+.patchList {
+  margin-top: 14px;
+}
+
+.patchListItem,
+.adminImportItem {
+  position: relative;
+  overflow: hidden;
   width: 100%;
-  min-height: 104px;
+  min-height: 94px;
   justify-content: flex-start;
+  border: 1px solid transparent;
   border-radius: 8px;
+  background: #151922;
   text-align: left;
   white-space: normal;
+}
+
+.patchListItem:hover,
+.adminImportItem:hover {
+  border-color: rgb(54 215 255 / 55%);
+  background: linear-gradient(135deg, #1b2230, #20253a);
+  box-shadow: 0 12px 28px rgb(0 0 0 / 24%);
+  transform: translateY(-1px);
+}
+
+.patchListItem[aria-current="page"],
+.adminImportItem[aria-current="page"] {
+  border-color: rgb(54 215 255 / 78%);
+  background:
+    linear-gradient(90deg, rgb(54 215 255 / 18%), transparent 34%),
+    linear-gradient(135deg, #22223f, #123254);
+  box-shadow:
+    var(--soft-glow),
+    inset 0 0 0 1px rgb(255 255 255 / 5%);
+}
+
+.patchListItem[aria-current="page"]::before,
+.adminImportItem[aria-current="page"]::before {
+  position: absolute;
+  top: 10px;
+  bottom: 10px;
+  left: 0;
+  width: 4px;
+  border-radius: 0 999px 999px 0;
+  background: linear-gradient(180deg, var(--cyan), var(--purple));
+  box-shadow: 0 0 16px rgb(54 215 255 / 55%);
+  content: "";
+}
+
+.patchListItem[aria-current="page"]::after,
+.adminImportItem[aria-current="page"]::after {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--green);
+  box-shadow: 0 0 14px rgb(109 255 140 / 72%);
+  content: "";
 }
 
 .patchListItemBody {
@@ -97,13 +339,23 @@
 }
 
 .summaryPanel {
-  margin-top: 12px;
+  border-color: rgb(167 40 255 / 74%);
+  box-shadow:
+    var(--shadow),
+    0 0 34px rgb(167 40 255 / 18%);
 }
 
 .summaryGrid {
   display: grid;
   gap: 20px;
-  margin-top: 18px;
+  margin-top: 38px;
+}
+
+.summaryGrid h1 {
+  max-width: 760px;
+  font-size: clamp(30px, 7vw, 56px);
+  line-height: 0.96;
+  letter-spacing: 0;
 }
 
 .stats {
@@ -119,26 +371,29 @@
 .statCard,
 .miniSummary {
   min-width: 0;
+  border: 1px solid var(--line);
   border-radius: 8px;
+  background: #11151d;
   padding: 12px;
 }
 
+.statCard h3 {
+  color: var(--text);
+}
+
 .metaPanel {
-  margin-top: 12px;
+  border-color: rgb(54 215 255 / 35%);
 }
 
 .timelinePanel {
-  margin-top: 18px;
+  border-color: rgb(30 136 255 / 45%);
 }
 
-/* Timeline visuals are intentionally isolated from the card list. If the later
-   redesign moves to charts or a horizontal scrubber, this block can be replaced
-   without touching the API or filtering logic. */
 .timelineList {
   position: relative;
   gap: 16px;
   margin-top: 18px;
-  padding-left: 18px;
+  padding-left: 20px;
   list-style: none;
 }
 
@@ -149,7 +404,7 @@
   left: 5px;
   width: 2px;
   border-radius: 999px;
-  background: var(--joy-palette-divider);
+  background: linear-gradient(180deg, var(--cyan), var(--purple));
   content: "";
 }
 
@@ -163,14 +418,14 @@
 .timelineMarker {
   position: relative;
   z-index: 1;
-  width: 12px;
-  height: 12px;
+  width: 14px;
+  height: 14px;
   margin-top: 6px;
-  margin-left: -18px;
-  border: 3px solid var(--joy-palette-background-surface);
+  margin-left: -20px;
+  border: 3px solid var(--surface);
   border-radius: 999px;
-  background: var(--joy-palette-primary-500);
-  box-shadow: 0 0 0 1px var(--joy-palette-primary-200);
+  background: var(--cyan);
+  box-shadow: 0 0 0 1px var(--cyan), 0 0 18px rgb(54 215 255 / 45%);
 }
 
 .timelinePatchBody {
@@ -187,18 +442,27 @@
   display: grid;
   min-width: 0;
   gap: 8px;
+  border: 1px solid var(--line);
   border-radius: 8px;
+  background: #151922;
   padding: 12px;
 }
 
 .toolbar {
+  position: sticky;
+  top: 10px;
+  z-index: 4;
   display: grid;
   gap: 12px;
   margin-top: 18px;
+  border: 1px solid rgb(54 215 255 / 24%);
+  border-radius: 8px;
+  background: rgb(23 26 33 / 90%);
+  padding: 14px;
+  box-shadow: 0 14px 38px rgb(0 0 0 / 26%);
+  backdrop-filter: blur(14px);
 }
 
-/* Segmented filters intentionally scroll on narrow screens instead of wrapping
-   into a tall control stack. This keeps the patch summary close to the cards. */
 .segmentedControl {
   max-width: 100%;
   overflow-x: auto;
@@ -208,7 +472,7 @@
 
 .segmentedControl button {
   min-width: 72px;
-  min-height: 38px;
+  min-height: 36px;
   flex: 0 0 auto;
 }
 
@@ -217,18 +481,32 @@
   margin-top: 18px;
 }
 
+.heroCard {
+  border-color: rgb(58 67 82 / 90%);
+}
+
+.heroCard::before {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 4px;
+  background: linear-gradient(90deg, var(--cyan), var(--purple), var(--pink));
+  content: "";
+}
+
 .heroAvatar {
   display: inline-flex;
-  width: 44px;
-  height: 44px;
+  width: 48px;
+  height: 48px;
   flex: 0 0 auto;
   align-items: center;
   justify-content: center;
+  border: 1px solid rgb(54 215 255 / 60%);
   border-radius: 8px;
-  background: #162032;
+  background: linear-gradient(135deg, #123254, #2a164f);
   color: #ffffff;
   font-size: 18px;
   font-weight: 900;
+  box-shadow: 0 0 18px rgb(54 215 255 / 18%);
 }
 
 .heroTitleBlock {
@@ -244,28 +522,29 @@
   overflow-wrap: anywhere;
 }
 
+.heroTitleBlock a {
+  color: var(--text);
+}
+
 .chipRow {
   max-width: 100%;
 }
 
-.heroDetailHeroPanel {
-  margin-top: 10px;
-  box-shadow: 0 8px 24px rgb(22 32 50 / 6%);
-}
-
 .heroDetailAvatar {
   display: inline-flex;
-  width: 72px;
-  height: 72px;
+  width: 82px;
+  height: 82px;
   flex: 0 0 auto;
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  border: 1px solid rgb(54 215 255 / 65%);
   border-radius: 8px;
-  background: #162032;
+  background: linear-gradient(135deg, #123254, #2a164f);
   color: #ffffff;
   font-size: 28px;
   font-weight: 900;
+  box-shadow: 0 0 26px rgb(54 215 255 / 22%);
 }
 
 .heroDetailAvatar img {
@@ -278,7 +557,20 @@
 .heroRelationGrid {
   display: grid;
   gap: 8px;
-  margin-top: 16px;
+  margin-top: 18px;
+}
+
+.heroRelationGrid > * {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: linear-gradient(180deg, #20242d, #171a21);
+  box-shadow: var(--shadow);
+}
+
+.relationCard {
+  border: 1px solid var(--line);
+  background: linear-gradient(180deg, #20242d, #171a21);
+  box-shadow: var(--shadow);
 }
 
 .changeBody {
@@ -300,28 +592,32 @@
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 4px;
-  border-radius: 8px;
-  background: var(--joy-palette-background-surface);
+  border: 1px solid rgb(54 215 255 / 34%);
+  border-radius: 999px;
+  background: rgb(23 26 33 / 92%);
   padding: 6px;
-  box-shadow: 0 10px 28px rgb(22 32 50 / 18%);
+  box-shadow: 0 16px 42px rgb(0 0 0 / 42%);
+  backdrop-filter: blur(16px);
 }
 
 .bottomNav a {
   min-width: 0;
-  min-height: 44px;
+  min-height: 42px;
   justify-content: center;
   padding-inline: 6px;
   white-space: nowrap;
 }
 
 .stateCard {
+  grid-column: 1 / -1;
+  align-self: start;
   width: min(100% - 32px, 520px);
   margin: 20vh auto 0;
 }
 
 .inlineStateCard {
   width: 100%;
-  background: var(--joy-palette-background-surface);
+  background: #151922;
 }
 
 .stateAction {
@@ -339,6 +635,9 @@
 
 .adminPage {
   display: block;
+  background:
+    radial-gradient(circle at 86% 6%, rgb(30 136 255 / 12%), transparent 26%),
+    linear-gradient(180deg, #151820, #101217);
 }
 
 .adminHeader {
@@ -346,14 +645,18 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  min-height: 52px;
+  min-height: 58px;
 }
 
 .adminHeroPanel,
 .adminListPanel,
 .adminReviewPanel,
-.adminStagingCard {
-  box-shadow: 0 8px 24px rgb(22 32 50 / 6%);
+.adminStagingCard,
+.adminHeroEditCard,
+.adminHeroManagerPanel {
+  border: 1px solid var(--line);
+  background: linear-gradient(180deg, #20242d, #171a21);
+  box-shadow: var(--shadow);
 }
 
 .adminHeroPanel {
@@ -377,15 +680,6 @@
   margin-top: 14px;
 }
 
-.adminImportItem {
-  width: 100%;
-  min-height: 116px;
-  justify-content: flex-start;
-  border-radius: 8px;
-  text-align: left;
-  white-space: normal;
-}
-
 .adminReviewGrid,
 .adminTextGrid,
 .adminRelationList,
@@ -396,7 +690,9 @@
   gap: 12px;
 }
 
-.adminStagingCard {
+.adminStagingCard,
+.adminHeroEditCard {
+  min-width: 0;
   border-radius: 8px;
 }
 
@@ -405,19 +701,14 @@
   margin-top: 14px;
 }
 
-.adminHeroEditCard {
-  min-width: 0;
-  border-radius: 8px;
-  box-shadow: 0 8px 24px rgb(22 32 50 / 6%);
-}
-
 .adminHeroToolbar {
   margin-top: 16px;
 }
 
 .adminRelationList {
+  border: 1px solid var(--line);
   border-radius: 8px;
-  background: var(--joy-palette-background-surface);
+  background: #151922;
   padding: 12px;
 }
 
@@ -425,8 +716,9 @@
   display: grid;
   min-width: 0;
   gap: 10px;
+  border: 1px solid var(--line);
   border-radius: 8px;
-  background: var(--joy-palette-background-level1);
+  background: #11151d;
   padding: 10px;
 }
 
@@ -448,7 +740,7 @@
   }
 
   .summaryGrid {
-    grid-template-columns: minmax(0, 1fr) 320px;
+    grid-template-columns: minmax(0, 1fr) 300px;
     align-items: end;
   }
 
@@ -478,11 +770,9 @@
     align-items: end;
   }
 
-  .adminReviewGrid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .adminTextGrid {
+  .adminReviewGrid,
+  .adminTextGrid,
+  .adminHeroEditGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -495,10 +785,6 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .adminHeroEditGrid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
   .adminRelationRow {
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
@@ -506,8 +792,6 @@
 }
 
 @media (max-width: 480px) {
-  /* This breakpoint only handles collision-prone rows. Broader layout choices
-     stay in the mobile defaults above so a redesign can replace them cleanly. */
   .content {
     padding-inline: 12px;
   }
@@ -523,14 +807,16 @@
     width: 100%;
   }
 
+  .summaryGrid h1 {
+    font-size: 34px;
+  }
+
   .stateCard {
     margin-top: 16vh;
   }
 }
 
 @media (min-width: 1120px) {
-  /* Desktop switches to a persistent sidebar. Mobile spacing above should stay
-     independent so bottom navigation changes do not leak into desktop. */
   .page {
     display: grid;
     grid-template-columns: 260px minmax(0, 1fr);
@@ -539,11 +825,22 @@
   .sidebar {
     position: sticky;
     top: 0;
-    display: block;
+    display: flex;
     height: 100vh;
-    border-right: 1px solid var(--joy-palette-divider);
-    background: var(--joy-palette-background-surface);
+    flex-direction: column;
+    border-right: 1px solid var(--line);
+    background: linear-gradient(180deg, #20242d, #11151d);
     padding: 28px 22px;
+    box-shadow: 16px 0 42px rgb(0 0 0 / 24%);
+  }
+
+  .sidebar::after {
+    width: 94px;
+    height: 3px;
+    margin-top: 22px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--purple), var(--cyan));
+    content: "";
   }
 
   .mobileHeader,
@@ -552,8 +849,14 @@
   }
 
   .content {
+    width: min(100%, 1240px);
     margin: 0;
-    padding: 36px;
+    padding: 38px 36px 56px;
+  }
+
+  .content::before,
+  .content::after {
+    display: block;
   }
 
   .adminContent {
@@ -579,8 +882,8 @@
   }
 
   .toolbar {
-    grid-template-columns: minmax(260px, 1.1fr) minmax(300px, 1.3fr) minmax(
-        220px,
+    grid-template-columns: minmax(240px, 1.1fr) minmax(290px, 1.25fr) minmax(
+        210px,
         0.9fr
       ) minmax(220px, 1fr);
   }

@@ -103,7 +103,7 @@ function RelatedHeroList({
   label: string;
 }) {
   return (
-    <Card variant="outlined">
+    <Card className={styles.relationCard} variant="outlined">
       <Typography level="title-md">{label}</Typography>
       <Stack direction="row" flexWrap="wrap" gap={0.75} sx={{ mt: 1.25 }}>
         {heroes.length === 0 ? (

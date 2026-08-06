@@ -168,7 +168,7 @@ export function PatchListPanel({
         spacing={2}
       >
         <Box>
-          <Typography level="title-md">패치 목록</Typography>
+          <Typography level="title-md">Patch Feed</Typography>
           <Typography level="body-sm" textColor="text.tertiary">
             분석된 패치를 선택해 상세 변경사항을 확인하세요.
           </Typography>
@@ -194,6 +194,7 @@ export function PatchListPanel({
                 color={selected ? "primary" : "neutral"}
                 key={patch.patchId}
                 onClick={() => onPatchSelect(patch.patchId)}
+                aria-current={selected ? "page" : undefined}
                 variant={selected ? "soft" : "plain"}
               >
                 <Box className={styles.patchListItemBody}>
@@ -254,7 +255,7 @@ export function PatchSummaryPanel({
         spacing={2}
       >
         <Chip color="primary" size="sm" variant="soft">
-          최신 분석
+          Latest Briefing
         </Chip>
         <Typography component="time" dateTime={patch.patchDate} level="body-sm">
           {patch.patchDate}
@@ -293,8 +294,8 @@ export function PatchSummaryPanel({
 export function MetaSummaryPanel({ summary }: { summary: string }) {
   return (
     <Card className={styles.metaPanel} id="meta" variant="outlined">
-      <Typography level="title-sm" textColor="primary.600">
-        메타 요약
+      <Typography level="title-sm" textColor="primary.400">
+        Meta Intel
       </Typography>
       <Typography level="body-md" textColor="text.secondary">
         {summary}
@@ -323,7 +324,7 @@ export function MetaTimelinePanel({
         spacing={2}
       >
         <Box>
-          <Typography level="title-md">메타 타임라인</Typography>
+          <Typography level="title-md">Global Meta Track</Typography>
           <Typography level="body-sm" textColor="text.tertiary">
             패치별 메타 영향 흐름을 시간순으로 확인하세요.
           </Typography>
