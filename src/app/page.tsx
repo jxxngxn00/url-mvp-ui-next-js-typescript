@@ -7,6 +7,7 @@ import {
   BottomNavigation,
   Brand,
   HeroChangeList,
+  LoadingScreen,
   MetaSummaryPanel,
   MetaTimelinePanel,
   PatchFilters,
@@ -122,7 +123,7 @@ export default function Home() {
   }
 
   if (isLoading || isPatchListLoading || isTimelineLoading) {
-    return <StateCard title="패치 분석을 불러오는 중입니다." />;
+    return <LoadingScreen logo={logoIcon} />;
   }
 
   if (patches.length === 0 || activePatchId === null || !data) {

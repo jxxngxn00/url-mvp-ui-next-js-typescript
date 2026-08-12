@@ -24,6 +24,8 @@ Do not commit `.env` or `.env.sentry-build-plugin`.
 - Confirm the Supabase PostgreSQL project is reachable from the deployment target.
 - Confirm Prisma migrations have already been applied to the target database.
 - Confirm seed or crawled hero data exists before relying on patch analysis.
+- Confirm patch update workflow tables exist: `patch_imports`, `patch_change_staging`, `patch_staging_relations`, and `patch_apply_logs`.
+- Confirm `PatchStagingStatus` includes `PENDING_REVIEW` and `NEEDS_MAPPING` in older databases that used the historical Day 1 DDL.
 
 ## External Services
 
@@ -56,11 +58,14 @@ After deployment, check these routes:
 - `/api/meta-timeline`
 - `/api/heroes`
 - `/heroes/{heroId}`
+- `/admin/heroes`
+- `/admin/patch-notes`
 
 Check these app flows:
 
 - Patch list loads saved patch data.
 - Hero filters update both hero cards and meta timeline entries.
 - Hero detail page opens from a hero card or timeline entry.
+- Admin patch import list loads existing imports and staging counts.
 - Empty, loading, and error states are readable on mobile.
 - Sentry receives a test error in the expected project.

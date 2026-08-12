@@ -668,13 +668,13 @@ function calculateStagingConfidence({
   numericExtractionStatus: NumericExtractionReview["status"];
 }): StagingConfidenceResult {
   const breakdown = {
-    hero: heroResolved ? 0.35 : 0,
-    changeType: changeTypePresent ? 0.1 : 0,
-    impactLevel: impactLevelPresent ? 0.1 : 0,
-    originalChange: originalChangePresent ? 0.15 : 0,
-    summaryFields: Math.min(completedSummaryFieldCount, 3) * 0.05,
-    relatedHeroes: getRelatedHeroConfidence(relationResolutionStatus),
-    numericExtraction: getNumericExtractionConfidence(numericExtractionStatus),
+    hero: heroResolved ? 0.35 : 0,                                                // 영웅 매칭 성공 여부
+    changeType: changeTypePresent ? 0.1 : 0,                                      // 변경 유형 존재 여부 (BUFF, NERF, ADJUSTMENT, BUG_FIX)
+    impactLevel: impactLevelPresent ? 0.1 : 0,                                    // 영향 수준 존재 여부 (LOW, MEDIUM, HIGH)
+    originalChange: originalChangePresent ? 0.15 : 0,                             // 원문 변경 내용 존재 여부
+    summaryFields: Math.min(completedSummaryFieldCount, 3) * 0.05,                // 요약 필드 작성 개수 (요약, 메타 영향, 추천 플레이)
+    relatedHeroes: getRelatedHeroConfidence(relationResolutionStatus),            // 시너지/카운터 영웅이 모두 DB hero와 매칭되었는지 여부
+    numericExtraction: getNumericExtractionConfidence(numericExtractionStatus),   // 숫자 추출 성공 여부
   };
   const score = Object.values(breakdown).reduce((sum, value) => sum + value, 0);
 

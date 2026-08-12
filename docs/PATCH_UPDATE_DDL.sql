@@ -1,6 +1,13 @@
--- Day 1 DDL draft for the manual URL based semi-automated patch update flow.
+-- Helper DDL snapshot for the manual URL based semi-automated patch update flow.
+-- Last reviewed: 2026-08-07.
+--
+-- prisma/schema.prisma is the canonical schema. Use this SQL only when a direct
+-- database bootstrap or manual Supabase patch is needed.
+--
 -- This script only adds import/review/apply tables. Existing public-facing
 -- tables such as patch_notes and hero_changes remain the final applied data.
+-- The relation_type and confidence checks are SQL-level safeguards; Prisma
+-- represents relation_type as String and confidence as Decimal.
 
 do $$
 begin

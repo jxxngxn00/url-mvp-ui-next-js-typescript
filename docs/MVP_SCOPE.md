@@ -1,5 +1,7 @@
 # MVP Scope
 
+Last updated: 2026-08-07
+
 ## MVP Principle
 
 The first version should prove the core experience:
@@ -19,6 +21,9 @@ Implementation should stay small enough to finish, but the data model should not
 - Affected tiers
 - Synergy heroes
 - Counter heroes
+- Patch URL import records
+- Parser staging rows for admin review
+- Patch apply audit logs
 
 ### Screens
 
@@ -27,6 +32,8 @@ Implementation should stay small enough to finish, but the data model should not
 - Hero detail analysis
 - Meta timeline
 - Search
+- Admin hero DB management
+- Admin patch note import/review/apply workspace
 
 ### Filters
 
@@ -48,8 +55,7 @@ Implementation should stay small enough to finish, but the data model should not
 ## Deferred
 
 - Authentication
-- Admin dashboard
-- Full patch crawler
+- Fully automated historical patch crawler
 - User personalization
 - Saved heroes
 - Push notifications
@@ -67,4 +73,11 @@ Implementation should stay small enough to finish, but the data model should not
 7. Add hero detail page.
 8. Add search and timeline.
 9. Add Sentry and production hardening.
+
+## Current Implementation Notes
+
+- The MVP now includes a semi-automated admin patch update workflow.
+- Parser output is staged in review tables before it is applied to public patch analysis tables.
+- The current UI direction is the dark game portal design documented in `docs/UI_STRUCTURE.md`.
+- The canonical DB model is `prisma/schema.prisma`; see `docs/DATA_MODEL.md` for the readable model guide.
 

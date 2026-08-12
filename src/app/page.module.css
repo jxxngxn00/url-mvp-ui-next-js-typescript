@@ -648,6 +648,152 @@
   padding-top: 4px;
 }
 
+.loadingScreen {
+  position: relative;
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 40%, rgb(54 215 255 / 16%), transparent 30%),
+    radial-gradient(circle at 34% 28%, rgb(167 40 255 / 18%), transparent 24%),
+    linear-gradient(180deg, #111216 0%, #0c0d12 100%);
+  color: var(--text);
+  padding: 32px 18px;
+}
+
+.loadingScreen::before,
+.loadingScreen::after {
+  position: absolute;
+  width: 210px;
+  height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, rgb(54 215 255 / 72%), transparent);
+  content: "";
+}
+
+.loadingScreen::before {
+  top: 24%;
+  transform: rotate(-18deg);
+}
+
+.loadingScreen::after {
+  bottom: 24%;
+  transform: rotate(18deg);
+}
+
+.loadingAura {
+  position: absolute;
+  width: min(70vw, 520px);
+  aspect-ratio: 1;
+  border: 1px solid rgb(54 215 255 / 14%);
+  border-radius: 999px;
+  background:
+    radial-gradient(circle, rgb(30 136 255 / 20%), transparent 58%),
+    conic-gradient(from 180deg, rgb(54 215 255 / 0%), rgb(54 215 255 / 18%), rgb(167 40 255 / 18%), rgb(54 215 255 / 0%));
+  filter: blur(0.2px);
+  opacity: 0.86;
+  animation: loadingAuraPulse 2400ms ease-in-out infinite;
+}
+
+.loadingContent {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 520px);
+  text-align: center;
+}
+
+.loadingLogo {
+  position: relative;
+  display: inline-flex;
+  width: clamp(92px, 20vw, 132px);
+  aspect-ratio: 1;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 1px solid rgb(54 215 255 / 62%);
+  border-radius: 18px;
+  background:
+    linear-gradient(135deg, rgb(30 136 255 / 88%), rgb(167 40 255 / 82%)),
+    #151922;
+  box-shadow:
+    0 26px 70px rgb(0 0 0 / 38%),
+    0 0 42px rgb(54 215 255 / 22%);
+}
+
+.loadingLogo::after {
+  position: absolute;
+  inset: 8px;
+  border: 1px solid rgb(255 255 255 / 20%);
+  border-radius: 12px;
+  content: "";
+}
+
+.loadingLogo img {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.loadingTitleBlock {
+  display: grid;
+  gap: 10px;
+}
+
+.loadingTitleBlock h1 {
+  font-size: clamp(42px, 12vw, 74px);
+  line-height: 0.94;
+  letter-spacing: 0;
+}
+
+.loadingTitleBlock p {
+  color: var(--muted);
+  font-weight: 500;
+  line-height: 1.65;
+}
+
+.loadingBar {
+  width: min(260px, 72vw);
+  height: 3px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgb(86 98 118 / 30%);
+}
+
+.loadingBar > * {
+  width: 42%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--purple), var(--blue), var(--cyan));
+  box-shadow: 0 0 16px rgb(54 215 255 / 70%);
+  animation: loadingBarSlide 1300ms ease-in-out infinite;
+}
+
+@keyframes loadingAuraPulse {
+  0%,
+  100% {
+    transform: scale(0.94);
+    opacity: 0.72;
+  }
+
+  50% {
+    transform: scale(1);
+    opacity: 0.94;
+  }
+}
+
+@keyframes loadingBarSlide {
+  0% {
+    transform: translateX(-110%);
+  }
+
+  100% {
+    transform: translateX(250%);
+  }
+}
+
 .adminContent {
   width: min(100%, 1280px);
   margin: 0 auto;

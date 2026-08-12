@@ -1,6 +1,9 @@
--- Day4 staging 상태 보강 DDL입니다.
--- 이미 Day1 DDL을 실행한 Supabase 프로젝트에서는 enum type이 존재하므로,
--- 아래 ALTER TYPE만 추가 실행하면 검수용 상태값을 저장할 수 있습니다.
+-- Historical helper DDL for adding review-specific staging statuses.
+-- Last reviewed: 2026-08-07.
+--
+-- prisma/schema.prisma is the canonical schema and already includes these enum
+-- values. Use this SQL only for an older database that was initialized before
+-- PENDING_REVIEW and NEEDS_MAPPING were added.
 
 alter type "PatchStagingStatus" add value if not exists 'PENDING_REVIEW';
 alter type "PatchStagingStatus" add value if not exists 'NEEDS_MAPPING';

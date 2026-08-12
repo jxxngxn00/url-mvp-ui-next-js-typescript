@@ -125,6 +125,30 @@ export function StateCard({
   );
 }
 
+export function LoadingScreen({ logo }: { logo: StaticImageData }) {
+  return (
+    <main className={styles.loadingScreen}>
+      <Box className={styles.loadingAura} aria-hidden="true" />
+      <Stack alignItems="center" className={styles.loadingContent} spacing={2.5}>
+        <Box className={styles.loadingLogo}>
+          <Image alt="PatchSignal logo" priority src={logo} />
+        </Box>
+        <Box className={styles.loadingTitleBlock}>
+          <Typography component="h1" level="h1">
+            PatchSignal
+          </Typography>
+          <Typography level="body-md">
+            패치 신호를 읽는 중입니다.
+          </Typography>
+        </Box>
+        <Box className={styles.loadingBar} aria-label="Loading">
+          <Box />
+        </Box>
+      </Stack>
+    </main>
+  );
+}
+
 export function InlineStateCard({
   title,
   description,
